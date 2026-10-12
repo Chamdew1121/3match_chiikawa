@@ -607,10 +607,14 @@
   });
 
   document.getElementById('btn-start').addEventListener('click', () => {
-    if (!isVersionValid) {
+if (!isVersionValid) {
       showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
       return;
     }
+    
+    // 💡 게임 시작 시 서버로 플레이 카운트 +1 요청 전송 (결과를 기다리지 않고 바로 게임 시작)
+    fetch(`${SCRIPT_URL}?action=play`).catch(err => console.error("플레이 카운트 전송 실패", err));
+
     try {
       startScreen.style.display = 'none';
       initGame();
