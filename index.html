@@ -5,15 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>치이카와 맞추기 팡팡 (라스트팡 & 랭킹 연동)</title>
 <style>
-  body {
-    display: flex; flex-direction: column; align-items: center;
-    background-color: #222; color: white; font-family: sans-serif;
-    margin: 0; padding-top: 30px; touch-action: manipulation;
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #222;
+    color: white;
+    font-family: sans-serif;
+    touch-action: manipulation;
+    overflow-x: hidden;
     
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 10px 30px 10px;
   }
 
   input {
@@ -27,9 +44,9 @@
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.95); display: flex; flex-direction: column;
     justify-content: center; align-items: center; z-index: 200;
-    overflow-y: auto; padding: 20px 0; box-sizing: border-box;
+    overflow-y: auto; padding: 20px 10px; box-sizing: border-box;
   }
-  #start-screen h1 { color: #ffcc00; font-size: 42px; margin-top: 0; margin-bottom: 15px; text-align: center; line-height: 1.3; }
+  #start-screen h1 { color: #ffcc00; font-size: calc(24px + 2vw); margin-top: 0; margin-bottom: 15px; text-align: center; line-height: 1.3; }
 
   /* 상품 정보 영역 */
   #prize-container {
@@ -41,33 +58,31 @@
     border-radius: 12px;
     padding: 12px 20px;
     margin-bottom: 20px;
-    width: 90%; max-width: 480px;
+    width: 100%; max-width: 480px;
     box-shadow: 0 4px 15px rgba(255, 204, 0, 0.2);
-    box-sizing: border-box;
   }
   #prize-image {
-    width: 120px; height: 120px;
+    width: 100px; height: 100px;
     object-fit: contain;
     border-radius: 8px;
     background-color: #111;
     margin-bottom: 8px;
   }
   #prize-name {
-    color: #ffcc00; font-size: 20px; font-weight: bold;
+    color: #ffcc00; font-size: 18px; font-weight: bold;
     text-align: center; line-height: 1.3; word-break: keep-all;
   }
   
   .ranking-container {
     position: relative;
-    background: #333; padding: 15px 25px; border-radius: 15px;
-    border: 3px solid #555; margin-bottom: 25px; width: 90%; max-width: 500px;
+    background: #333; padding: 15px; border-radius: 15px;
+    border: 3px solid #555; margin-bottom: 20px; width: 100%; max-width: 500px;
     text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-    box-sizing: border-box;
   }
-  .ranking-container h3 { font-size: 24px; margin-top: 0; }
+  .ranking-container h3 { font-size: 20px; margin-top: 0; }
 
   #btn-refresh-rank {
-    padding: 8px 16px; font-size: 16px; font-weight: bold;
+    padding: 8px 16px; font-size: 15px; font-weight: bold;
     background-color: #4CAF50; color: white; border: none; border-radius: 6px;
     cursor: pointer; margin-bottom: 12px; transition: background-color 0.2s;
   }
@@ -76,19 +91,27 @@
   }
 
   #btn-start {
-    padding: 18px 50px; font-size: 30px; cursor: pointer;
+    padding: 16px 40px; font-size: 24px; cursor: pointer;
     background-color: #ff5555; color: white; border: none; border-radius: 12px; font-weight: bold;
     box-shadow: 0 6px 15px rgba(255,85,85,0.4); transition: transform 0.2s;
   }
   #btn-start:hover { transform: scale(1.05); }
 
+  /* 헤더 타이틀 및 상단 바 반응형 설정 */
+  .game-title {
+    font-size: calc(20px + 1.5vw);
+    margin-top: 0;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
   #top-bar {
     display: flex; justify-content: space-between; align-items: center;
-    width: 100%; max-width: 610px; margin-bottom: 15px;
+    width: 100%; max-width: 500px; margin-bottom: 10px;
   }
   #score, #timer {
-    font-size: 30px; font-weight: bold; color: #ffcc00; background: #333;
-    padding: 12px 18px; border-radius: 8px; border: 3px solid #555;
+    font-size: calc(16px + 1vw); font-weight: bold; color: #ffcc00; background: #333;
+    padding: 8px 14px; border-radius: 8px; border: 2px solid #555;
   }
   #timer { color: #ff5555; }
   #timer.auto-active {
@@ -98,34 +121,49 @@
   }
   
   #missions-panel {
-    display: flex; gap: 15px; width: 100%; max-width: 610px; margin-bottom: 20px;
+    display: flex; gap: 8px; width: 100%; max-width: 500px; margin-bottom: 12px;
   }
   .mission-card {
-    flex: 1; background: #333; border-radius: 12px; padding: 12px;
-    font-size: 21px; text-align: center; border: 3px solid #555;
+    flex: 1; background: #333; border-radius: 10px; padding: 8px 4px;
+    font-size: 15px; text-align: center; border: 2px solid #555;
   }
   .mission-card.completed { border-color: #ffcc00; background: #4a4011; }
-  .mission-reward { font-size: 18px; color: #ffcc00; margin-top: 6px; font-weight: bold; }
+  .mission-reward { font-size: 13px; color: #ffcc00; margin-top: 4px; font-weight: bold; }
 
+  /* 💡 모바일 화면 자동 맞춤 핵심 CSS (반응형 그리드) */
   #board-container {
     position: relative;
-    width: fit-content;
-    height: fit-content;
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    justify-content: center;
   }
 
   #board {
-    display: grid; grid-template-columns: repeat(8, 72px); grid-template-rows: repeat(8, 72px);
-    gap: 4px; background-color: #444; padding: 15px; border-radius: 12px; touch-action: none;
+    display: grid; 
+    grid-template-columns: repeat(8, 1fr); 
+    grid-template-rows: repeat(8, 1fr);
+    gap: 4px; 
+    background-color: #444; 
+    padding: 10px; 
+    border-radius: 12px; 
+    touch-action: none;
+    width: 100%;
+    aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
   }
   
   .cell {
-    position: relative; width: 72px; height: 72px;
-    background-color: #333; border-radius: 8px; cursor: pointer; 
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #333; 
+    border-radius: 6px; 
+    cursor: pointer; 
   }
   
   .cell-inner {
     width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;
-    font-size: 42px; transition: transform 0.5s ease, opacity 0.5s ease; 
+    font-size: calc(18px + 2vw); transition: transform 0.5s ease, opacity 0.5s ease; 
   }
   .popping .cell-inner { transform: scale(0); opacity: 0; }
   .transforming .cell-inner { animation: pulseTransform 0.5s ease-in-out; }
@@ -138,24 +176,24 @@
   
   .cell:hover { background-color: #555; }
   .cell.selected { background-color: #666; border: 3px solid white; box-sizing: border-box; z-index: 10; }
-  .effect-icon { position: absolute; font-size: 24px; bottom: 2px; right: 2px; text-shadow: 2px 2px 3px black; }
+  .effect-icon { position: absolute; font-size: 16px; bottom: 2px; right: 2px; text-shadow: 2px 2px 3px black; }
 
   /* 파괴 점수 팝업 애니메이션 */
   @keyframes floatUpFade {
     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
-    50% { opacity: 1; transform: translate(-50%, -100%) scale(1.3); }
+    50% { opacity: 1; transform: translate(-50%, -100%) scale(1.2); }
     100% { opacity: 0; transform: translate(-50%, -130%) scale(1); }
   }
   .score-popup {
     position: absolute;
     transform: translate(-50%, -50%);
-    color: #ffcc00; font-size: 32px; font-weight: 900;
+    color: #ffcc00; font-size: calc(18px + 1.5vw); font-weight: 900;
     text-shadow: 2px 2px 4px #000, 0 0 10px #ff9900;
     pointer-events: none; z-index: 80;
     animation: floatUpFade 0.5s ease-out forwards;
   }
 
-  /* 미션 클리어 안내 팝업 (1초 지속 연출) */
+  /* 미션 클리어 안내 팝업 */
   @keyframes missionPopFade {
     0% { opacity: 0; transform: translate(-50%, -10px) scale(0.8); }
     20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
@@ -164,25 +202,25 @@
   }
   #mission-toast {
     position: absolute; 
-    top: 180px; 
+    top: 30%; 
     left: 50%; 
     transform: translateX(-50%);
     background: rgba(255, 204, 0, 0.95); color: #111;
-    padding: 12px 28px; border-radius: 30px; font-size: 26px; font-weight: 900;
+    padding: 10px 20px; border-radius: 20px; font-size: calc(16px + 1vw); font-weight: 900;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6); z-index: 180; pointer-events: none;
     display: none; border: 3px solid #fff;
     white-space: nowrap;
   }
 
   .btn-restart { 
-    padding: 18px 30px; font-size: 24px; cursor: pointer; 
+    padding: 14px 20px; font-size: 18px; cursor: pointer; 
     background-color: #4CAF50; color: white; border: none; 
     border-radius: 8px; font-weight: bold; width: 100%; transition: background-color 0.2s;
   }
   .btn-restart:hover { background-color: #45a049; }
   
   #btn-ingame-restart {
-    max-width: 610px; margin-top: 20px; background-color: #008CBA; margin-bottom: 40px;
+    width: 100%; max-width: 500px; margin-top: 15px; background-color: #008CBA; margin-bottom: 20px;
   }
   #btn-ingame-restart:hover { background-color: #007bb5; }
 
@@ -205,38 +243,38 @@
     100% { transform: translate(2px, -3px) rotate(-2deg); }
   }
   .shake-text {
-    animation: shake 0.1s infinite; font-size: 110px; color: #ff5555; font-weight: 900;
-    text-shadow: 0 0 20px black, 0 0 40px #ff0000; letter-spacing: 6px; text-align: center;
+    animation: shake 0.1s infinite; font-size: calc(40px + 6vw); color: #ff5555; font-weight: 900;
+    text-shadow: 0 0 20px black, 0 0 40px #ff0000; letter-spacing: 4px; text-align: center;
   }
   
   .nomatch-text {
-    font-size: 80px; color: #ffcc00; font-weight: 900;
-    text-shadow: 0 0 20px black, 0 0 30px #ff9900; letter-spacing: 5px; text-align: center;
+    font-size: calc(32px + 4vw); color: #ffcc00; font-weight: 900;
+    text-shadow: 0 0 20px black, 0 0 30px #ff9900; letter-spacing: 3px; text-align: center;
   }
 
   #game-over-modal, #version-alert-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 300;
   }
-  .modal-content { background: #222; padding: 40px; border-radius: 15px; border: 3px solid #555; text-align: center; width: 90%; max-width: 450px; }
-  #final-score { font-size: 32px; font-weight: bold; color: #ffcc00; margin-bottom: 25px; }
+  .modal-content { background: #222; padding: 25px; border-radius: 15px; border: 3px solid #555; text-align: center; width: 90%; max-width: 420px; }
+  #final-score { font-size: 24px; font-weight: bold; color: #ffcc00; margin-bottom: 20px; }
   
-  #register-section { background: #333; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
-  #register-section input { padding: 12px; font-size: 20px; width: 60%; border-radius: 6px; border: none; text-align: center; }
-  #register-section button { padding: 12px 20px; font-size: 20px; cursor: pointer; background-color: #008CBA; color: white; border: none; border-radius: 4px; font-weight: bold; }
+  #register-section { background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+  #register-section input { padding: 10px; font-size: 18px; width: 55%; border-radius: 6px; border: none; text-align: center; }
+  #register-section button { padding: 10px 16px; font-size: 18px; cursor: pointer; background-color: #008CBA; color: white; border: none; border-radius: 4px; font-weight: bold; }
   
-  .ranking-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 18px; }
-  .ranking-table th, .ranking-table td { padding: 8px; border-bottom: 1px solid #444; }
-  .ranking-notice { color:#aaa; font-size:14px; margin-top: 0; margin-bottom: 15px; }
+  .ranking-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px; }
+  .ranking-table th, .ranking-table td { padding: 6px; border-bottom: 1px solid #444; }
+  .ranking-notice { color:#aaa; font-size:12px; margin-top: 0; margin-bottom: 12px; }
 
   .update-link {
     display: inline-block;
-    margin-top: 20px;
-    padding: 12px 24px;
+    margin-top: 15px;
+    padding: 10px 20px;
     background-color: #ff5555;
     color: white;
     text-decoration: none;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(255,85,85,0.4);
@@ -273,7 +311,7 @@
   <button id="btn-start">게임 시작</button>
 </div>
 
-<h2 style="font-size: 36px; margin-bottom: 20px;">치이카와 맞추기 팡팡 ✨</h2>
+<h2 class="game-title">치이카와 맞추기 팡팡 ✨</h2>
 <div id="top-bar">
   <div id="score">점수: 0</div>
   <div id="timer">남은 시간: 60</div>
@@ -301,16 +339,16 @@
 
 <div id="game-over-modal" style="display: none;">
   <div class="modal-content">
-    <h2 style="color:#ffcc00; margin-top:0; font-size: 36px;">결과 창</h2>
+    <h2 style="color:#ffcc00; margin-top:0; font-size: 28px;">결과 창</h2>
     <div id="final-score">내 점수: 0</div>
     
     <div id="register-section" style="display: none;">
-      <p style="color:#aaa; font-size:18px;">🎉 Top 10 진입을 축하합니다! 🎉</p>
+      <p style="color:#aaa; font-size:15px; margin-top:0;">🎉 Top 10 진입을 축하합니다! 🎉</p>
       <input type="text" id="player-name" placeholder="이름 입력" maxlength="8">
       <button id="btn-register">등록</button>
     </div>
 
-    <h3 style="color:white; margin-bottom: 10px; font-size: 24px;">🏆 주간 Top 10 랭킹 🏆</h3>
+    <h3 style="color:white; margin-bottom: 8px; font-size: 20px;">🏆 주간 Top 10 랭킹 🏆</h3>
     <p class="ranking-notice">랭킹은 매주 월요일 0시에 초기화 됩니다. (UTC +0)</p>
     
     <table class="ranking-table">
@@ -323,14 +361,14 @@
 
 <div id="version-alert-modal" style="display: none;">
   <div class="modal-content">
-    <h2 style="color:#ff5555; margin-top:0; font-size: 32px;">업데이트 필요</h2>
-    <p id="version-alert-msg" style="color:white; font-size:20px; line-height:1.5; margin-bottom:10px;">
+    <h2 style="color:#ff5555; margin-top:0; font-size: 26px;">업데이트 필요</h2>
+    <p id="version-alert-msg" style="color:white; font-size:16px; line-height:1.5; margin-bottom:10px;">
       현재 버젼은 랭킹을 등록할 수 없어요.<br>업데이트 받아주세요.
     </p>
     <a href="https://drive.google.com/drive/folders/1J2b9u2D5V94knGQukCVPH5ZJVJXYxRT6" target="_blank" class="update-link">
       📥 최신 버전 다운로드 받기
     </a>
-    <button class="btn-restart" id="btn-close-version-modal" style="margin-top:20px; background-color:#777;">닫기</button>
+    <button class="btn-restart" id="btn-close-version-modal" style="margin-top:15px; background-color:#777;">닫기</button>
   </div>
 </div>
 
@@ -685,14 +723,13 @@
   function renderMissions() {
     missionsPanel.innerHTML = '';
     missions.forEach((m) => {
-      let card = document.className = `mission-card ${m.completed ? 'completed' : ''}`;
       let cardElem = document.createElement('div');
       cardElem.className = `mission-card ${m.completed ? 'completed' : ''}`;
       let reqHtml = '';
       for (let type in m.req) {
         let current = Math.min(m.cur[type], m.req[type]);
-        reqHtml += `<div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:4px;">
-                      <img src="${blockImages[type]}" style="width:30px; height:30px; object-fit:contain;">
+        reqHtml += `<div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:2px;">
+                      <img src="${blockImages[type]}" style="width:22px; height:22px; object-fit:contain;">
                       <span>${current}/${m.req[type]}</span>
                     </div>`;
       }
@@ -701,7 +738,6 @@
     });
   }
 
-  // 미션 클리어 안내 토스트 팝업 (1초 연출)
   function showMissionToast(reward) {
     missionToast.innerText = `🎉 미션 클리어! (+${reward}점)`;
     missionToast.style.display = 'block';
@@ -750,8 +786,10 @@
     let avgR = sumR / poppedCells.length;
     let avgC = sumC / poppedCells.length;
 
-    let posX = 15 + avgC * 76 + 36;
-    let posY = 15 + avgR * 76 + 36;
+    let boardRect = boardElement.getBoundingClientRect();
+    let cellWidth = (boardRect.width - 20 - 28) / 8; // 패딩 및 갭 계산
+    let posX = 10 + avgC * (cellWidth + 4) + cellWidth/2;
+    let posY = 10 + avgR * (cellWidth + 4) + cellWidth/2;
 
     let popup = document.createElement('div');
     popup.className = 'score-popup';
@@ -795,7 +833,6 @@
     }, 1000);
   }
 
-  // 시간이 0초가 되면 자연스러운 연쇄 파괴 종료 후 TIME OVER -> 특수 블록 정산 -> END 오버레이 실행
   function checkAndTriggerEnd() {
     if (isGameOver && !isProcessing && !isEndTriggered) {
       isEndTriggered = true;
@@ -803,12 +840,10 @@
       isAutoPlay = false;
       timerElement.classList.remove('auto-active');
 
-      // 1. TIME OVER 오버레이 표시
       timeoverOverlay.style.display = 'flex';
       
       setTimeout(() => {
         timeoverOverlay.style.display = 'none';
-        // 2. 특수 블록 정산 단계 시작 (라스트팡)
         isLastPangActive = true;
         executeLastPangStep();
       }, 1000);
@@ -831,7 +866,6 @@
       isProcessing = true;
       processDestruction(toRemove, []);
     } else {
-      // 3. 특수 블록 정산이 모두 끝나면 1초 후 END 오버레이 출력
       setTimeout(() => {
         endOverlay.style.display = 'flex';
         setTimeout(() => {
@@ -939,7 +973,9 @@
 
   function onPointerDown(e, r, c) {
     if (isProcessing || isGameOver || isTimerPaused) return;
-    e.target.releasePointerCapture(e.pointerId); 
+    try {
+      e.target.releasePointerCapture(e.pointerId);
+    } catch(err) {}
     isDragging = true; dragStart = { r, c };
     if (!selectedCell) { selectedCell = { r, c }; renderBoard(); } 
     else { attemptSwap(selectedCell.r, selectedCell.c, r, c); }
@@ -1271,7 +1307,9 @@
           poppedCells.push({ r, c });
           
           let cellIndex = r * width + c;
-          cells[cellIndex].classList.add('popping');
+          if (cells[cellIndex]) {
+            cells[cellIndex].classList.add('popping');
+          }
         }
       }
     }
