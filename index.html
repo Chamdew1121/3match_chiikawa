@@ -17,8 +17,8 @@
     background-color: #222;
     color: white;
     font-family: sans-serif;
-    touch-action: manipulation;
-    overflow-x: hidden;
+    touch-action: none;
+    overflow: hidden;
     
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -45,10 +45,10 @@
     background: rgba(0, 0, 0, 0.95); display: flex; flex-direction: column;
     justify-content: center; align-items: center; z-index: 200;
     overflow-y: auto; padding: 20px 10px; box-sizing: border-box;
+    touch-action: pan-y;
   }
   #start-screen h1 { color: #ffcc00; font-size: calc(24px + 2vw); margin-top: 0; margin-bottom: 15px; text-align: center; line-height: 1.3; }
 
-  /* 상품 정보 영역 */
   #prize-container {
     display: none;
     flex-direction: column;
@@ -97,7 +97,6 @@
   }
   #btn-start:hover { transform: scale(1.05); }
 
-  /* 헤더 타이틀 및 상단 바 반응형 설정 */
   .game-title {
     font-size: calc(20px + 1.5vw);
     margin-top: 0;
@@ -130,7 +129,6 @@
   .mission-card.completed { border-color: #ffcc00; background: #4a4011; }
   .mission-reward { font-size: 13px; color: #ffcc00; margin-top: 4px; font-weight: bold; }
 
-  /* 💡 모바일 화면 자동 맞춤 핵심 CSS (반응형 그리드) */
   #board-container {
     position: relative;
     width: 100%;
@@ -149,7 +147,7 @@
     border-radius: 12px; 
     touch-action: none;
     width: 100%;
-    aspect-ratio: 1 / 1; /* 정사각형 비율 유지 */
+    aspect-ratio: 1 / 1;
   }
   
   .cell {
@@ -178,7 +176,6 @@
   .cell.selected { background-color: #666; border: 3px solid white; box-sizing: border-box; z-index: 10; }
   .effect-icon { position: absolute; font-size: 16px; bottom: 2px; right: 2px; text-shadow: 2px 2px 3px black; }
 
-  /* 파괴 점수 팝업 애니메이션 */
   @keyframes floatUpFade {
     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
     50% { opacity: 1; transform: translate(-50%, -100%) scale(1.2); }
@@ -193,7 +190,6 @@
     animation: floatUpFade 0.5s ease-out forwards;
   }
 
-  /* 미션 클리어 안내 팝업 */
   @keyframes missionPopFade {
     0% { opacity: 0; transform: translate(-50%, -10px) scale(0.8); }
     20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
@@ -224,7 +220,7 @@
   }
   #btn-ingame-restart:hover { background-color: #007bb5; }
 
-  #end-overlay, #timeover-overlay, #nomatch-overlay {
+  #end-overlay, #timeover-overlay, #nomatch-overlay, #countdown-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
     z-index: 150; pointer-events: none; background: rgba(0,0,0,0.6);
@@ -245,6 +241,18 @@
   .shake-text {
     animation: shake 0.1s infinite; font-size: calc(40px + 6vw); color: #ff5555; font-weight: 900;
     text-shadow: 0 0 20px black, 0 0 40px #ff0000; letter-spacing: 4px; text-align: center;
+  }
+
+  /* 카운트다운 애니메이션 */
+  @keyframes countPop {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .count-text {
+    font-size: calc(60px + 8vw); color: #ffcc00; font-weight: 900;
+    text-shadow: 0 0 30px black, 0 0 50px #ff9900;
+    animation: countPop 0.4s ease-out forwards;
   }
   
   .nomatch-text {
@@ -325,6 +333,10 @@
 
 <button id="btn-ingame-restart" class="btn-restart">처음으로 돌아가기</button>
 
+<div id="countdown-overlay" style="display: none;">
+  <div id="countdown-num" class="count-text">3</div>
+</div>
+
 <div id="timeover-overlay" style="display: none;">
   <div class="shake-text">TIME OVER</div>
 </div>
@@ -373,6 +385,7 @@
 </div>
 
 <script>
+  // 업데이트된 버젼 261012.4
   const CLIENT_VERSION = '261012.4';
   const UPDATE_DRIVE_URL = 'https://drive.google.com/drive/folders/1J2b9u2D5V94knGQukCVPH5ZJVJXYxRT6';
 
@@ -422,6 +435,8 @@
   const startRankingList = document.getElementById('start-ranking-list');
   const playerNameInput = document.getElementById('player-name');
   const startScreen = document.getElementById('start-screen');
+  const countdownOverlay = document.getElementById('countdown-overlay');
+  const countdownNum = document.getElementById('countdown-num');
   const timeoverOverlay = document.getElementById('timeover-overlay');
   const endOverlay = document.getElementById('end-overlay');
   const nomatchOverlay = document.getElementById('nomatch-overlay');
@@ -467,7 +482,7 @@
   }
 
   timerElement.addEventListener('click', () => {
-    if (isGameOver || isAutoPlay) return;
+    if (isGameOver || isAutoPlay || isTimerPaused) return;
     timerClickCount++;
     clearTimeout(timerClickTimeout);
     
@@ -486,7 +501,7 @@
   function startAutoPlay() {
     clearInterval(autoPlayInterval);
     autoPlayInterval = setInterval(() => {
-      if (isGameOver || !isAutoPlay) {
+      if (isGameOver || !isAutoPlay || isTimerPaused) {
         clearInterval(autoPlayInterval);
         return;
       }
@@ -558,6 +573,31 @@
     loadServerData().then(() => {
       renderStartRankings();
     });
+
+    document.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        e.preventDefault();
+        let touch = e.touches[0];
+        let elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elem) {
+          let cell = elem.closest('.cell');
+          if (cell && cell.dataset.r !== undefined && cell.dataset.c !== undefined) {
+            let r = parseInt(cell.dataset.r);
+            let c = parseInt(cell.dataset.c);
+            if (dragStart && (dragStart.r !== r || dragStart.c !== c)) {
+              attemptSwap(dragStart.r, dragStart.c, r, c);
+              isDragging = false;
+              dragStart = null;
+            }
+          }
+        }
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+      dragStart = null;
+    });
   });
 
   document.getElementById('btn-start').addEventListener('click', () => {
@@ -586,6 +626,7 @@
     timerElement.classList.remove('auto-active');
     isGameOver = true;
     modal.style.display = 'none';
+    countdownOverlay.style.display = 'none';
     timeoverOverlay.style.display = 'none';
     endOverlay.style.display = 'none';
     
@@ -787,7 +828,7 @@
     let avgC = sumC / poppedCells.length;
 
     let boardRect = boardElement.getBoundingClientRect();
-    let cellWidth = (boardRect.width - 20 - 28) / 8; // 패딩 및 갭 계산
+    let cellWidth = (boardRect.width - 20 - 28) / 8;
     let posX = 10 + avgC * (cellWidth + 4) + cellWidth/2;
     let posY = 10 + avgR * (cellWidth + 4) + cellWidth/2;
 
@@ -810,27 +851,55 @@
     return { type: blockTypes[Math.floor(Math.random() * blockTypes.length)], effect: 'normal' };
   }
 
+  // 3, 2, 1, START! 카운트다운 연출 함수
+  function runStartCountdown(callback) {
+    isTimerPaused = true;
+    countdownOverlay.style.display = 'flex';
+    let countSeq = ['3', '2', '1', 'START!'];
+    let idx = 0;
+
+    function playNextCount() {
+      if (idx < countSeq.length) {
+        countdownNum.innerText = countSeq[idx];
+        countdownNum.style.animation = 'none';
+        countdownNum.offsetHeight; // reflow
+        countdownNum.style.animation = 'countPop 0.4s ease-out forwards';
+        idx++;
+        setTimeout(playNextCount, 800);
+      } else {
+        countdownOverlay.style.display = 'none';
+        isTimerPaused = false;
+        if (callback) callback();
+      }
+    }
+
+    playNextCount();
+  }
+
   function startTimer() {
     clearInterval(timerInterval);
     timeLeft = 60;
-    isTimerPaused = false;
     timerElement.innerText = `남은 시간: ${timeLeft}`;
-    timerInterval = setInterval(() => {
-      if (isTimerPaused) return;
-      
-      timeLeft--;
-      timerElement.innerText = `남은 시간: ${timeLeft}`;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        timerElement.innerText = `남은 시간: 0`;
-        clearInterval(timerInterval);
-        clearInterval(autoPlayInterval);
-        isAutoPlay = false;
-        timerElement.classList.remove('auto-active');
-        isGameOver = true;
-        checkAndTriggerEnd();
-      }
-    }, 1000);
+    
+    // 카운트다운 연출 후 60초 타이머 시작
+    runStartCountdown(() => {
+      timerInterval = setInterval(() => {
+        if (isTimerPaused) return;
+        
+        timeLeft--;
+        timerElement.innerText = `남은 시간: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          timerElement.innerText = `남은 시간: 0`;
+          clearInterval(timerInterval);
+          clearInterval(autoPlayInterval);
+          isAutoPlay = false;
+          timerElement.classList.remove('auto-active');
+          isGameOver = true;
+          checkAndTriggerEnd();
+        }
+      }, 1000);
+    });
   }
 
   function checkAndTriggerEnd() {
@@ -913,7 +982,7 @@
   }
 
   function initGame() {
-    modal.style.display = 'none'; timeoverOverlay.style.display = 'none'; endOverlay.style.display = 'none'; nomatchOverlay.style.display = 'none';
+    modal.style.display = 'none'; timeoverOverlay.style.display = 'none'; endOverlay.style.display = 'none'; nomatchOverlay.style.display = 'none'; countdownOverlay.style.display = 'none';
     isGameOver = false; isProcessing = false; 
     isEndTriggered = false; isLastPangActive = false; isTimerPaused = false;
     isAutoPlay = false; timerClickCount = 0;
@@ -939,6 +1008,8 @@
       for (let c = 0; c < width; c++) {
         const cell = document.createElement('div');
         cell.classList.add('cell');
+        cell.dataset.r = r;
+        cell.dataset.c = c;
         
         const inner = document.createElement('div');
         inner.classList.add('cell-inner');
@@ -964,7 +1035,6 @@
         
         cell.addEventListener('pointerdown', (e) => onPointerDown(e, r, c));
         cell.addEventListener('pointerenter', (e) => onPointerEnter(e, r, c));
-        cell.addEventListener('pointerup', () => onPointerUp(r, c));
 
         boardElement.appendChild(cell);
       }
@@ -973,9 +1043,6 @@
 
   function onPointerDown(e, r, c) {
     if (isProcessing || isGameOver || isTimerPaused) return;
-    try {
-      e.target.releasePointerCapture(e.pointerId);
-    } catch(err) {}
     isDragging = true; dragStart = { r, c };
     if (!selectedCell) { selectedCell = { r, c }; renderBoard(); } 
     else { attemptSwap(selectedCell.r, selectedCell.c, r, c); }
@@ -988,8 +1055,6 @@
       isDragging = false; dragStart = null;
     }
   }
-  function onPointerUp(r, c) { isDragging = false; dragStart = null; }
-  document.addEventListener('pointerup', () => { isDragging = false; dragStart = null; });
 
   function attemptSwap(r1, c1, r2, c2) {
     const dr = Math.abs(r1 - r2); const dc = Math.abs(c1 - c2);
