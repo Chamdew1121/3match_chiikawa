@@ -106,25 +106,27 @@
   }
 
   #top-bar {
-    display: flex; flex-direction: column; gap: 8px;
-    width: 100%; max-width: 500px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; max-width: 500px; margin-bottom: 8px;
   }
 
   #score-box {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
     background: #333; padding: 6px 14px; border-radius: 8px; border: 2px solid #555;
     font-size: calc(16px + 0.8vw); font-weight: bold; color: #ffcc00;
   }
 
+  /* 💡 높이가 반으로 줄어든(14px) 얇은 슬림 타이머 게이지 바 */
   #timer-gauge-container {
     position: relative;
-    width: 100%;
-    height: 28px;
+    width: 100%; max-width: 500px;
+    height: 14px;
     background-color: #1a1a1a;
-    border: 2px solid #555;
-    border-radius: 14px;
+    border: 1px solid #555;
+    border-radius: 7px;
     overflow: hidden;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+    margin-bottom: 8px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
   }
 
   #timer-gauge-bar {
@@ -138,21 +140,22 @@
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
-    font-size: 16px; font-weight: 900; color: #ffffff;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9);
+    font-size: 11px; font-weight: 900; color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9), -1px -1px 2px rgba(0,0,0,0.9);
     pointer-events: none;
   }
 
+  /* 💡 점멸 속도 완화: 0.6s -> 1.2s */
   @keyframes gaugeDangerPulse {
-    0%, 100% { border-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
-    50% { border-color: #660000; box-shadow: 0 0 0px transparent; }
+    0%, 100% { border-color: #ff0000; box-shadow: 0 0 8px #ff0000; }
+    50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
   }
   #timer-gauge-container.danger-mode {
-    animation: gaugeDangerPulse 0.6s infinite ease-in-out;
+    animation: gaugeDangerPulse 1.2s infinite ease-in-out;
   }
 
   #missions-panel {
-    display: flex; gap: 8px; width: 100%; max-width: 500px; margin-bottom: 10px;
+    display: flex; gap: 8px; width: 100%; max-width: 500px; margin-bottom: 8px;
   }
   .mission-card {
     flex: 1; background: #333; border-radius: 10px; padding: 6px 4px;
@@ -185,12 +188,13 @@
     transition: border-color 0.3s ease;
   }
 
+  /* 💡 보드 점멸 속도 완화: 0.6s -> 1.2s */
   @keyframes dangerPulse {
-    0%, 100% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+    0%, 100% { border-color: #ff0000; box-shadow: 0 0 12px #ff0000; }
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
   }
   #board.danger-mode {
-    animation: dangerPulse 0.6s infinite ease-in-out;
+    animation: dangerPulse 1.2s infinite ease-in-out;
   }
   
   .cell {
@@ -234,6 +238,9 @@
   .cell:hover { background-color: #555; }
   .cell.selected { background-color: #666; border: 3px solid white; box-sizing: border-box; z-index: 10; }
   .effect-icon { position: absolute; font-size: 16px; bottom: 2px; right: 2px; text-shadow: 2px 2px 3px black; }
+  
+  /* 💡 일반 블록에 부착되는 시계 스티커 아이콘 위치 */
+  .time-icon { position: absolute; font-size: 15px; top: 2px; left: 2px; text-shadow: 2px 2px 3px black; }
 
   @keyframes floatUpFade {
     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
@@ -338,9 +345,17 @@
   #register-section input { padding: 10px; font-size: 18px; width: 55%; border-radius: 6px; border: none; text-align: center; }
   #register-section button { padding: 10px 16px; font-size: 18px; cursor: pointer; background-color: #008CBA; color: white; border: none; border-radius: 4px; font-weight: bold; }
   
-  .ranking-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 15px; }
+  .ranking-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 15px; }
   .ranking-table th, .ranking-table td { padding: 6px; border-bottom: 1px solid #444; }
   .ranking-notice { color:#aaa; font-size:12px; margin-top: 0; margin-bottom: 12px; }
+
+  .version-display {
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+  }
 
   .update-reload-btn {
     display: block;
@@ -383,6 +398,7 @@
         <tr><td colspan="3" style="color:white;">랭킹 정보 확인 중...</td></tr>
       </tbody>
     </table>
+    <div class="version-display">현재 버전: v261013.11</div>
   </div>
 
   <button id="btn-start">게임 시작</button>
@@ -393,12 +409,15 @@
   <div id="score-box">
     <span id="score">점수: 0</span>
   </div>
-  <div id="timer-gauge-container">
-    <div id="timer-gauge-bar"></div>
-    <div id="timer-text">남은 시간: 60초</div>
-  </div>
 </div>
+
 <div id="missions-panel"></div>
+
+<!-- 💡 미션 패널과 게임 보드 사이로 이동된 슬림 타이머 게이지 바 -->
+<div id="timer-gauge-container">
+  <div id="timer-gauge-bar"></div>
+  <div id="timer-text">남은 시간: 60초</div>
+</div>
 
 <div id="board-container">
   <div id="board"></div>
@@ -441,6 +460,7 @@
       <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
       <tbody id="ranking-list"></tbody>
     </table>
+    <div class="version-display">현재 버전: v261013.11</div>
     <button class="btn-restart" id="btn-modal-restart">다시 하기</button>
   </div>
 </div>
@@ -457,7 +477,8 @@
 </div>
 
 <script>
-  const CLIENT_VERSION = '261013.8';
+  // 💡 최신 버전: 261013.11
+  const CLIENT_VERSION = '261013.11';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -601,14 +622,14 @@
       for (let c = 0; c < width; c++) {
         let b = board[r][c];
         if (!b) continue;
-        let isSpecial = (b.effect !== 'normal' || b.type === '🌈' || b.type === '⏰');
+        let isSpecial = (b.effect !== 'normal' || b.type === '🌈' || b.hasClock);
         if (isSpecial) {
           let dirs = [[0,1],[1,0],[0,-1],[-1,0]];
           for (let d of dirs) {
             let nr = r + d[0], nc = c + d[1];
             if (nr >= 0 && nr < height && nc >= 0 && nc < width && board[nr][nc]) {
               let nb = board[nr][nc];
-              if (nb.effect !== 'normal' || nb.type === '🌈' || nb.type === '⏰') {
+              if (nb.effect !== 'normal' || nb.type === '🌈' || nb.hasClock) {
                 attemptSwap(r, c, nr, nc);
                 return;
               }
@@ -626,7 +647,7 @@
           if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
             swap(r, c, nr, nc);
             let matchData = checkAndGetMatches(-1, -1, -1, -1);
-            let isSpecialMove = (board[nr][nc] && (board[nr][nc].type === '🌈' || board[r][c].type === '🌈' || board[nr][nc].type === '⏰' || board[r][c].type === '⏰'));
+            let isSpecialMove = (board[nr][nc] && (board[nr][nc].type === '🌈' || board[r][c].type === '🌈'));
             swap(r, c, nr, nc);
             if (matchData.hasMatch || isSpecialMove) {
               attemptSwap(r, c, nr, nc);
@@ -713,13 +734,31 @@
     });
   });
 
+  async function checkVersionOnly() {
+    try {
+      let res = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+      let data = await res.json();
+      const serverVersion = String(data.version || '').trim();
+      
+      if (serverVersion === CLIENT_VERSION) {
+        isVersionValid = true;
+      } else {
+        isVersionValid = false;
+        showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
+      }
+      return isVersionValid;
+    } catch(e) {
+      console.error("버전 체크 실패", e);
+      return isVersionValid;
+    }
+  }
+
   btnStart.addEventListener('click', async () => {
     btnStart.disabled = true;
-    await loadServerData();
     
-    if (!isVersionValid) {
+    const isValid = await checkVersionOnly();
+    if (!isValid) {
       btnStart.disabled = false;
-      showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
       return;
     }
     
@@ -749,12 +788,10 @@
     btnIngameRestart.disabled = true;
     btnModalRestart.disabled = true;
 
-    await loadServerData();
-    
-    if (!isVersionValid) {
+    const isValid = await checkVersionOnly();
+    if (!isValid) {
       btnIngameRestart.disabled = false;
       btnModalRestart.disabled = false;
-      showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
       return;
     }
 
@@ -828,8 +865,11 @@
       updatePrizeUI(prizeImgConverted, prizeText);
       localStorage.setItem('match3_prize_cache', JSON.stringify({ img: prizeImgConverted, name: prizeText }));
 
+      return isVersionValid;
+
     } catch(e) {
       console.error("서버 데이터 불러오기 실패", e);
+      return isVersionValid;
     }
   }
 
@@ -884,21 +924,20 @@
     });
   }
 
-  // 💡 미션 보상: 점수 OR 시간 (3~10초) 단일 보상 할당
   function generateMission() {
     let shuffled = [...blockTypes].sort(() => 0.5 - Math.random());
     let type1 = shuffled[0], type2 = shuffled[1];
     let count1 = Math.floor(Math.random() * 8) + 5;
     let count2 = Math.floor(Math.random() * 8) + 5;
     
-    let isTimeReward = Math.random() < 0.5; // 50% 확률
+    let isTimeReward = Math.random() < 0.5;
     let scoreReward = 0;
     let timeReward = 0;
 
     if (isTimeReward) {
-      timeReward = Math.floor(Math.random() * 8) + 3; // 3초 ~ 10초
+      timeReward = Math.floor(Math.random() * 8) + 3;
     } else {
-      scoreReward = (count1 + count2) * 2; // 점수 보상
+      scoreReward = (count1 + count2) * 2;
     }
 
     return { 
@@ -1032,12 +1071,11 @@
     }
   }
 
+  // 💡 독립된 시계 블록 대신 일반 캐릭터 블록에 5% 확률로 ⏰ 속성을 부여하는 로직
   function getRandomBlock() {
-    let isTimeBlock = (Math.random() < 0.05);
-    if (isTimeBlock) {
-      return { type: '⏰', effect: 'normal' };
-    }
-    return { type: blockTypes[Math.floor(Math.random() * blockTypes.length)], effect: 'normal' };
+    let randType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
+    let hasClock = (Math.random() < 0.05); // 5% 확률로 시계 아이콘 부착
+    return { type: randType, effect: 'normal', hasClock: hasClock };
   }
 
   function resetHintTimer() {
@@ -1070,12 +1108,14 @@
     }
   }
 
+  // 💡 [정밀 검토 완료된 힌트 탐색 알고리즘]
   function findOnePossibleMove() {
+    // 1. 인접한 특수 블록 간 조합 가능 여부 체크
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let b1 = board[r][c];
         if (!b1) continue;
-        let isSp1 = (b1.effect !== 'normal' || b1.type === '🌈' || b1.type === '⏰');
+        let isSp1 = (b1.effect !== 'normal' || b1.type === '🌈');
         if (!isSp1) continue;
 
         let dirs = [[0, 1], [1, 0]];
@@ -1083,13 +1123,14 @@
           let nr = r + d[0], nc = c + d[1];
           if (nr >= 0 && nr < height && nc >= 0 && nc < width && board[nr][nc]) {
             let b2 = board[nr][nc];
-            let isSp2 = (b2.effect !== 'normal' || b2.type === '🌈' || b2.type === '⏰');
+            let isSp2 = (b2.effect !== 'normal' || b2.type === '🌈');
             if (isSp2) return { r, c };
           }
         }
       }
     }
 
+    // 2. 가로/세로 1칸 교환 시 실제로 연속 3개 이상 정렬되는 이동 체크
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let dirs = [[0, 1], [1, 0]];
@@ -1102,10 +1143,10 @@
 
             swap(r, c, nr, nc);
             let matchData = checkAndGetMatches(-1, -1, -1, -1);
-            let isSpecialMove = (b1.type === '🌈' || b2.type === '🌈' || b1.type === '⏰' || b2.type === '⏰');
+            let isRainbowMove = (b1.type === '🌈' || b2.type === '🌈');
             swap(r, c, nr, nc);
 
-            if (matchData.hasMatch || isSpecialMove) return { r, c };
+            if (matchData.hasMatch || isRainbowMove) return { r, c };
           }
         }
       }
@@ -1347,8 +1388,6 @@
         if (b) {
           if (b.type === '🌈') {
             inner.innerText = '🌈';
-          } else if (b.type === '⏰') {
-            inner.innerText = '⏰';
           } else {
             inner.style.backgroundImage = `url('${blockImages[b.type]}')`;
             inner.style.backgroundSize = '85%';
@@ -1359,6 +1398,9 @@
           if (b.effect === 'h') inner.innerHTML += '<div class="effect-icon">↔️</div>';
           else if (b.effect === 'v') inner.innerHTML += '<div class="effect-icon">↕️</div>';
           else if (b.effect === 'b') inner.innerHTML += '<div class="effect-icon">💣</div>';
+          
+          // 💡 일반 블록에 부착된 시계 스티커 아이콘
+          if (b.hasClock) inner.innerHTML += '<div class="time-icon">⏰</div>';
         }
         
         cell.appendChild(inner);
@@ -1401,10 +1443,10 @@
       setTimeout(() => {
         let b1 = board[r1][c1]; let b2 = board[r2][c2];
 
-        let isSpecial1 = (b1.effect !== 'normal' || b1.type === '🌈' || b1.type === '⏰');
-        let isSpecial2 = (b2.effect !== 'normal' || b2.type === '🌈' || b2.type === '⏰');
+        let isSpecial1 = (b1.effect !== 'normal' || b1.type === '🌈');
+        let isSpecial2 = (b2.effect !== 'normal' || b2.type === '🌈');
 
-        if (isSpecial1 && isSpecial2 && b1.type !== '⏰' && b2.type !== '⏰') {
+        if (isSpecial1 && isSpecial2) {
           executeComboSpecial(r1, c1, r2, c2, b1, b2);
           return;
         }
@@ -1601,7 +1643,7 @@
   function hasPossibleMoves() {
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
-        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈' || board[r][c].type === '⏰')) {
+        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈')) {
           return true;
         }
       }
@@ -1704,15 +1746,16 @@
     for(let r=0; r<height; r++) {
       for(let c=0; c<width; c++) {
         if (finalToRemove[r][c] && board[r][c]) {
-          let type = board[r][c].type; 
+          let b = board[r][c];
           points++;
 
-          if (type === '⏰') {
+          // 💡 부착된 시계 스티커 아이콘 감지 처리
+          if (b.hasClock) {
             addedTimeFromBlock += 3;
           }
 
-          if(!poppedCounts[type]) poppedCounts[type] = 0;
-          poppedCounts[type]++;
+          if(!poppedCounts[b.type]) poppedCounts[b.type] = 0;
+          poppedCounts[b.type]++;
           poppedCells.push({ r, c });
           
           let cellIndex = r * width + c;
@@ -1737,7 +1780,7 @@
         }
       }
 
-      newSpecials.forEach(sp => { board[sp.r][sp.c] = { type: sp.type, effect: sp.effect }; });
+      newSpecials.forEach(sp => { board[sp.r][sp.c] = { type: sp.type, effect: sp.effect, hasClock: false }; });
 
       dropBlocks(); fillEmpty(); renderBoard();
       
