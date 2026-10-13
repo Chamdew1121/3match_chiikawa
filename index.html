@@ -274,7 +274,6 @@
   .ranking-table th, .ranking-table td { padding: 6px; border-bottom: 1px solid #444; }
   .ranking-notice { color:#aaa; font-size:12px; margin-top: 0; margin-bottom: 12px; }
 
-  /* 💡 새로고침 버튼 스타일 */
   .update-reload-btn {
     display: block;
     width: 100%;
@@ -313,7 +312,7 @@
     <table class="ranking-table">
       <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
       <tbody id="start-ranking-list">
-        <tr><td colspan="3" style="color:white;">랭킹 및 서버 정보 확인 중...</td></tr>
+        <tr><td colspan="3" style="color:white;">랭킹 정보 확인 중...</td></tr>
       </tbody>
     </table>
   </div>
@@ -333,7 +332,8 @@
   <div id="mission-toast">🎉 미션 클리어! (+0점)</div>
 </div>
 
-<button id="btn-ingame-restart" class="btn-restart">처음으로 돌아가기</button>
+<!-- 인게임 하단 버튼: 다시 하기로 변경 -->
+<button id="btn-ingame-restart" class="btn-restart">다시 하기</button>
 
 <div id="countdown-overlay" style="display: none;">
   <div id="countdown-num" class="count-text">3</div>
@@ -369,11 +369,11 @@
       <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
       <tbody id="ranking-list"></tbody>
     </table>
-    <button class="btn-restart" id="btn-modal-restart">처음으로 돌아가기</button>
+    <!-- 결과창 버튼: 클릭 시 즉시 게임 재시작 -->
+    <button class="btn-restart" id="btn-modal-restart">다시 하기</button>
   </div>
 </div>
 
-<!-- 💡 새로고침 버튼으로 변경된 버전 알림 모달 -->
 <div id="version-alert-modal" style="display: none;">
   <div class="modal-content">
     <h2 style="color:#ff5555; margin-top:0; font-size: 26px;">업데이트 필요</h2>
@@ -386,8 +386,7 @@
 </div>
 
 <script>
-  const CLIENT_VERSION = '261012.5';
-
+  const CLIENT_VERSION = '261013.1';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -404,7 +403,7 @@
   let isEndTriggered = false;
   let isLastPangActive = false;
   let isTimerPaused = false;
-  let isVersionValid = false;
+  let isVersionValid = true; // 캐시 기반 우선 실행 허용
 
   let isAutoPlay = false;
   let timerClickCount = 0;
@@ -449,21 +448,19 @@
     versionModal.style.display = 'none';
   });
 
-  // 💡 버튼 클릭 시 브라우저 캐시 무시 강제 새로고침
   document.getElementById('btn-force-reload').addEventListener('click', () => {
     let currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('v', Date.now()); // 캐시 무시 주소 파라미터 생성
+    currentUrl.searchParams.set('v', Date.now());
     window.location.replace(currentUrl.toString());
   });
 
   btnRefreshRank.addEventListener('click', async () => {
     if (refreshCooldown > 0) return;
     
-    startRankingList.innerHTML = '<tr><td colspan="3" style="color:white;">새로고침 중...</td></tr>';
     await loadServerData();
     renderStartRankings();
 
-    refreshCooldown = 30;
+    refreshCooldown = 15;
     updateRefreshButtonState();
     
     clearInterval(refreshTimer);
@@ -575,7 +572,39 @@
     });
   }
 
+  // 💡 초기화 로직: 로컬 캐시 데이터 즉시 적용 후 백그라운드 서버 비동기 갱신
   window.addEventListener('DOMContentLoaded', () => {
+    // 1. 기본 이미지 사전 바인딩
+    blockImages = {
+      '모몬가': 'https://lh3.googleusercontent.com/d/1UDcVkT-kfGifazD-hsMQgFLfXmoaP7Rl',
+      '시사': 'https://lh3.googleusercontent.com/d/1F7q3JdODBuXgJ2AN0JAKyILP8crQuxRN',
+      '랏코': 'https://lh3.googleusercontent.com/d/1LoKFzM1rLYxYb-Qb9td-d7zuDOWykBfh',
+      '쿠리만쥬': 'https://lh3.googleusercontent.com/d/1NdLupRgdkA5Mb6zl6cqT-mImUGGDLAu_',
+      '치이카와': 'https://lh3.googleusercontent.com/d/1nQRF7pPYLOEVIW2DPN9X0jwS8i7uLPMH',
+      '하치와레': 'https://lh3.googleusercontent.com/d/1NZ5svBnHllIio7SZz61L8YWpwuXmViRa',
+      '우사기': 'https://lh3.googleusercontent.com/d/164nGSfPB110TYND6bDnFShz37RV0nIe-'
+    };
+    blockTypes = Object.keys(blockImages);
+    preloadImages();
+
+    // 2. 로컬 캐시에서 즉시 가져와 UI 딜레이 없이 그리기
+    const cachedRankings = localStorage.getItem('match3_rankings_cache');
+    if (cachedRankings) {
+      try {
+        globalRankings = JSON.parse(cachedRankings);
+        renderStartRankings();
+      } catch(e){}
+    }
+
+    const cachedPrize = localStorage.getItem('match3_prize_cache');
+    if (cachedPrize) {
+      try {
+        let p = JSON.parse(cachedPrize);
+        updatePrizeUI(p.img, p.name);
+      } catch(e){}
+    }
+
+    // 3. 백그라운드 비동기 서버 갱신
     loadServerData().then(() => {
       renderStartRankings();
     });
@@ -607,13 +636,14 @@
   });
 
   document.getElementById('btn-start').addEventListener('click', () => {
-if (!isVersionValid) {
+    if (!isVersionValid) {
       showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
       return;
     }
     
-    // 💡 게임 시작 시 서버로 플레이 카운트 +1 요청 전송 (결과를 기다리지 않고 바로 게임 시작)
-    fetch(`${SCRIPT_URL}?action=play`).catch(err => console.error("플레이 카운트 전송 실패", err));
+    try {
+      fetch(`${SCRIPT_URL}?action=play&t=${Date.now()}`);
+    } catch(err){}
 
     try {
       startScreen.style.display = 'none';
@@ -629,31 +659,41 @@ if (!isVersionValid) {
     versionModal.style.display = 'flex';
   }
 
-  async function returnToStartScreen() {
+  // 💡 [핵심] '다시 하기' 버튼 클릭 시 처음으로 가지 않고 즉시 게임 재시작
+  function restartGameDirectly() {
     clearInterval(timerInterval);
     clearInterval(autoPlayInterval);
     isAutoPlay = false;
     timerElement.classList.remove('auto-active');
-    isGameOver = true;
+    
     modal.style.display = 'none';
-    countdownOverlay.style.display = 'none';
     timeoverOverlay.style.display = 'none';
     endOverlay.style.display = 'none';
+    countdownOverlay.style.display = 'none';
+    startScreen.style.display = 'none';
+
+    // 즉시 게임 재초기화
+    initGame();
     
-    startRankingList.innerHTML = '<tr><td colspan="3" style="color:white;">서버 데이터 확인 중...</td></tr>';
-    startScreen.style.display = 'flex';
-    
-    await loadServerData();
-    renderStartRankings();
+    // 백그라운드로 최신 랭킹 정보 백업 갱신
+    loadServerData();
   }
 
-  document.getElementById('btn-modal-restart').addEventListener('click', returnToStartScreen);
-  document.getElementById('btn-ingame-restart').addEventListener('click', returnToStartScreen);
+  document.getElementById('btn-modal-restart').addEventListener('click', restartGameDirectly);
+  document.getElementById('btn-ingame-restart').addEventListener('click', restartGameDirectly);
   
   document.getElementById('btn-register').addEventListener('click', async () => {
     let name = playerNameInput.value.trim() || '익명';
     registerSection.style.display = 'none';
-    rankingList.innerHTML = '<tr><td colspan="3" style="color:white;">서버에 저장 중입니다...</td></tr>';
+    
+    // 로컬 랭킹에 즉시 추가해서 화면 반응속도 극대화 (Optimistic UI)
+    globalRankings.push({ name: name, score: score });
+    globalRankings.sort((a, b) => b.score - a.score);
+    globalRankings = globalRankings.slice(0, 10);
+    renderRankings(rankingList);
+    localStorage.setItem('match3_rankings_cache', JSON.stringify(globalRankings));
+
+    // 백그라운드 서버 저장
     await saveScore(name, score);
     await loadServerData();
     renderRankings(rankingList);
@@ -666,8 +706,7 @@ if (!isVersionValid) {
       
       if (Array.isArray(data.rankings)) {
         globalRankings = data.rankings;
-      } else {
-        globalRankings = Array.isArray(data) ? data : [];
+        localStorage.setItem('match3_rankings_cache', JSON.stringify(globalRankings));
       }
 
       const serverVersion = String(data.version || '').trim();
@@ -682,44 +721,36 @@ if (!isVersionValid) {
         characterKeys.forEach((key, idx) => {
           blockImages[key] = convertToLh3Url(data.images[idx]);
         });
-      } else {
-        blockImages = {
-          '모몬가': 'https://lh3.googleusercontent.com/d/1UDcVkT-kfGifazD-hsMQgFLfXmoaP7Rl',
-          '시사': 'https://lh3.googleusercontent.com/d/1F7q3JdODBuXgJ2AN0JAKyILP8crQuxRN',
-          '랏코': 'https://lh3.googleusercontent.com/d/1LoKFzM1rLYxYb-Qb9td-d7zuDOWykBfh',
-          '쿠리만쥬': 'https://lh3.googleusercontent.com/d/1NdLupRgdkA5Mb6zl6cqT-mImUGGDLAu_',
-          '치이카와': 'https://lh3.googleusercontent.com/d/1nQRF7pPYLOEVIW2DPN9X0jwS8i7uLPMH',
-          '하치와레': 'https://lh3.googleusercontent.com/d/1NZ5svBnHllIio7SZz61L8YWpwuXmViRa',
-          '우사기': 'https://lh3.googleusercontent.com/d/164nGSfPB110TYND6bDnFShz37RV0nIe-'
-        };
+        preloadImages();
       }
-      blockTypes = Object.keys(blockImages);
-      preloadImages();
 
       const prizeImgConverted = convertToLh3Url(data.prizeImage || '');
       const prizeText = String(data.prizeName || '').trim();
-
-      if (prizeImgConverted || prizeText) {
-        prizeContainer.style.display = 'flex';
-        if (prizeImgConverted) {
-          prizeImage.src = prizeImgConverted;
-          prizeImage.style.display = 'block';
-        } else {
-          prizeImage.style.display = 'none';
-        }
-        if (prizeText) {
-          prizeName.innerText = prizeText;
-          prizeName.style.display = 'block';
-        } else {
-          prizeName.style.display = 'none';
-        }
-      } else {
-        prizeContainer.style.display = 'none';
-      }
+      updatePrizeUI(prizeImgConverted, prizeText);
+      localStorage.setItem('match3_prize_cache', JSON.stringify({ img: prizeImgConverted, name: prizeText }));
 
     } catch(e) {
       console.error("서버 데이터 불러오기 실패", e);
-      globalRankings = JSON.parse(localStorage.getItem('match3_rankings')) || [];
+    }
+  }
+
+  function updatePrizeUI(prizeImgConverted, prizeText) {
+    if (prizeImgConverted || prizeText) {
+      prizeContainer.style.display = 'flex';
+      if (prizeImgConverted) {
+        prizeImage.src = prizeImgConverted;
+        prizeImage.style.display = 'block';
+      } else {
+        prizeImage.style.display = 'none';
+      }
+      if (prizeText) {
+        prizeName.innerText = prizeText;
+        prizeName.style.display = 'block';
+      } else {
+        prizeName.style.display = 'none';
+      }
+    } else {
+      prizeContainer.style.display = 'none';
     }
   }
 
@@ -734,10 +765,6 @@ if (!isVersionValid) {
       }
     } catch(e) { 
       console.error("점수 저장 실패", e); 
-      globalRankings.push({ name: name, score: finalScore });
-      globalRankings.sort((a, b) => b.score - a.score);
-      globalRankings = globalRankings.slice(0, 10);
-      localStorage.setItem('match3_rankings', JSON.stringify(globalRankings));
     }
   }
 
@@ -953,12 +980,12 @@ if (!isVersionValid) {
     }
   }
 
-  async function showGameOverModal() {
+  function showGameOverModal() {
     document.getElementById('final-score').innerText = `내 점수: ${score}`;
     modal.style.display = 'flex';
-    rankingList.innerHTML = '<tr><td colspan="3" style="color:white;">랭킹 서버 접속 중...</td></tr>';
     
-    await loadServerData();
+    // 캐시 기반 즉시 그리기 (기다림 제거)
+    renderRankings(rankingList);
     
     let isTop10 = false;
     if (score > 0) {
@@ -972,7 +999,11 @@ if (!isVersionValid) {
     } else {
       registerSection.style.display = 'none';
     }
-    renderRankings(rankingList);
+
+    // 백그라운드 서버 최신화
+    loadServerData().then(() => {
+      renderRankings(rankingList);
+    });
   }
 
   function generateValidBoard() {
