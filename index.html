@@ -1104,6 +1104,7 @@
     });
   }
 
+// 1. 시간 종료 시 특수 블록 존재 여부에 따른 플로우 제어
   function checkAndTriggerEnd() {
     if (isGameOver && !isProcessing && !isEndTriggered) {
       isEndTriggered = true;
@@ -1114,16 +1115,40 @@
       isAutoPlay = false;
       timerElement.classList.remove('auto-active');
 
-      timeoverOverlay.style.display = 'flex';
-      
-      setTimeout(() => {
-        timeoverOverlay.style.display = 'none';
-        isLastPangActive = true;
-        executeLastPangStep();
-      }, 1000);
+      // 보드 내 특수 블록 유무 체크
+      let hasSpecial = false;
+      for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+          if (board[r][c] && board[r][c].effect !== 'normal') {
+            hasSpecial = true;
+            break;
+          }
+        }
+        if (hasSpecial) break;
+      }
+
+      if (hasSpecial) {
+        // [특수 블록 있음]: LAST PANG (1초) -> 특수 블록 연쇄 파괴 시작
+        timeoverOverlay.style.display = 'flex';
+        setTimeout(() => {
+          timeoverOverlay.style.display = 'none';
+          isLastPangActive = true;
+          executeLastPangStep();
+        }, 1000);
+      } else {
+        // [특수 블록 없음]: LAST PANG 생략 -> 1초 대기 -> END (1초) -> 결과창
+        setTimeout(() => {
+          endOverlay.style.display = 'flex';
+          setTimeout(() => {
+            endOverlay.style.display = 'none';
+            showGameOverModal();
+          }, 1000);
+        }, 1000); // 더 터트릴 것 없음 1초 대기
+      }
     }
   }
 
+  // 2. 특수 블록 파괴 단계 제어
   function executeLastPangStep() {
     let toRemove = Array(height).fill().map(() => Array(width).fill(false));
     let foundSpecial = false;
@@ -1131,7 +1156,8 @@
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         if (board[r][c] && board[r][c].effect !== 'normal') {
-          toRemove[r][c] = true; foundSpecial = true;
+          toRemove[r][c] = true; 
+          foundSpecial = true;
         }
       }
     }
@@ -1140,13 +1166,14 @@
       isProcessing = true;
       processDestruction(toRemove, []);
     } else {
+      // 연쇄 파괴 완료 -> 1초 대기 -> END (1초) -> 결과창
       setTimeout(() => {
         endOverlay.style.display = 'flex';
         setTimeout(() => {
           endOverlay.style.display = 'none';
           showGameOverModal();
         }, 1000);
-      }, 300);
+      }, 1000); // 파괴 완료 후 1초 대기
     }
   }
 
