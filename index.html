@@ -158,7 +158,7 @@
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
   }
   #board.danger-mode {
-    animation: dangerPulse 0.6s infinite ease-in-out;
+    animation: dangerPulse 1.2s infinite ease-in-out;
   }
   
   .cell {
@@ -186,7 +186,7 @@
   }
   .cell.hint-highlight {
     z-index: 20;
-    box-shadow: 0 0 10px #ffcc00;
+    box-shadow: 0 0 12px #ffcc00;
     border-radius: 8px;
   }
   .cell.hint-highlight .cell-inner {
@@ -416,8 +416,8 @@
 </div>
 
 <script>
-  // 💡 최신 버전: 261013.5
-  const CLIENT_VERSION = '261013.5';
+  // 💡 최신 버전: 261013.6
+  const CLIENT_VERSION = '261013.6';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -449,7 +449,7 @@
   let isDragging = false;
   let missions = [];
   let timeLeft = 60;
-  let timerAnimationFrame = null; // 타임스탬프 기반 프레임 제어
+  let timerAnimationFrame = null;
   let globalRankings = [];
 
   let hintTimeout = null;
@@ -973,28 +973,50 @@
     }
   }
 
+  // 💡 [개선된 힌트 탐색 로직] 실제 매치 파괴가 가능한 수만 정확히 검증
   function findOnePossibleMove() {
+    // 1. 특수 블록 + 특수 블록 인접 조합 탐색
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
-        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈')) {
-          return { r, c };
+        let b1 = board[r][c];
+        if (!b1) continue;
+        let isSp1 = (b1.effect !== 'normal' || b1.type === '🌈');
+        if (!isSp1) continue;
+
+        let dirs = [[0, 1], [1, 0]];
+        for (let d of dirs) {
+          let nr = r + d[0], nc = c + d[1];
+          if (nr >= 0 && nr < height && nc >= 0 && nc < width && board[nr][nc]) {
+            let b2 = board[nr][nc];
+            let isSp2 = (b2.effect !== 'normal' || b2.type === '🌈');
+            if (isSp2) {
+              return { r, c }; // 특수 블록 조합 매치 힌트
+            }
+          }
         }
       }
     }
 
+    // 2. 스왑 시 실제 3개 이상 클리어되는 일반/특수 이동 탐색
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
-        if (c < width - 1) {
-          swap(r, c, r, c + 1);
-          let matchData = checkAndGetMatches(-1, -1, -1, -1);
-          swap(r, c, r, c + 1);
-          if (matchData.hasMatch) return { r, c };
-        }
-        if (r < height - 1) {
-          swap(r, c, r + 1, c);
-          let matchData = checkAndGetMatches(-1, -1, -1, -1);
-          swap(r, c, r + 1, c);
-          if (matchData.hasMatch) return { r, c };
+        let dirs = [[0, 1], [1, 0]];
+        for (let d of dirs) {
+          let nr = r + d[0], nc = c + d[1];
+          if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
+            let b1 = board[r][c];
+            let b2 = board[nr][nc];
+            if (!b1 || !b2) continue;
+
+            swap(r, c, nr, nc);
+            let matchData = checkAndGetMatches(-1, -1, -1, -1);
+            let isRainbowMove = (b1.type === '🌈' || b2.type === '🌈');
+            swap(r, c, nr, nc);
+
+            if (matchData.hasMatch || isRainbowMove) {
+              return { r, c }; // 실제 파괴 유효 수 힌트 반환
+            }
+          }
         }
       }
     }
@@ -1031,7 +1053,6 @@
     playNextCount();
   }
 
-  // 💡 [핵심] 실제 시간 타임스탬프 기반의 정밀 타이머
   function startTimer() {
     cancelAnimationFrame(timerAnimationFrame);
     timeLeft = 60;
@@ -1040,7 +1061,7 @@
     
     runStartCountdown(() => {
       let startTime = performance.now();
-      let totalDurationMs = 60000; // 정확히 60초 (60,000ms)
+      let totalDurationMs = 60000;
 
       function updatePrecisionTimer(currentTime) {
         if (isTimerPaused) {
