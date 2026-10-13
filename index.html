@@ -148,6 +148,17 @@
     touch-action: none;
     width: 100%;
     aspect-ratio: 1 / 1;
+    border: 4px solid transparent;
+    transition: border-color 0.3s ease;
+  }
+
+  /* 💡 10초 이하 시 보드 빨간색 점멸 애니메이션 */
+  @keyframes dangerPulse {
+    0%, 100% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+    50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
+  }
+  #board.danger-mode {
+    animation: dangerPulse 0.6s infinite ease-in-out;
   }
   
   .cell {
@@ -165,6 +176,22 @@
   }
   .popping .cell-inner { transform: scale(0); opacity: 0; }
   .transforming .cell-inner { animation: pulseTransform 0.5s ease-in-out; }
+
+  @keyframes hintShake {
+    0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+    20% { transform: scale(1.15) rotate(-10deg); filter: brightness(1.4); }
+    40% { transform: scale(1.15) rotate(10deg); filter: brightness(1.4); }
+    60% { transform: scale(1.15) rotate(-10deg); filter: brightness(1.4); }
+    80% { transform: scale(1.15) rotate(10deg); filter: brightness(1.4); }
+  }
+  .cell.hint-highlight {
+    z-index: 20;
+    box-shadow: 0 0 10px #ffcc00;
+    border-radius: 8px;
+  }
+  .cell.hint-highlight .cell-inner {
+    animation: hintShake 0.8s infinite ease-in-out;
+  }
 
   @keyframes pulseTransform {
     0% { transform: scale(1); filter: brightness(1); }
@@ -223,24 +250,27 @@
   #end-overlay, #timeover-overlay, #nomatch-overlay, #countdown-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     display: flex; justify-content: center; align-items: center;
-    z-index: 150; pointer-events: none; background: rgba(0,0,0,0.6);
+    z-index: 150; pointer-events: none; background: rgba(0,0,0,0.65);
   }
-  @keyframes shake {
-    0% { transform: translate(2px, 2px) rotate(0deg); }
-    10% { transform: translate(-2px, -3px) rotate(-2deg); }
-    20% { transform: translate(-4px, 0px) rotate(2deg); }
-    30% { transform: translate(4px, 3px) rotate(0deg); }
-    40% { transform: translate(2px, -2px) rotate(2deg); }
-    50% { transform: translate(-2px, 3px) rotate(-2deg); }
-    60% { transform: translate(-4px, 2px) rotate(0deg); }
-    70% { transform: translate(4px, 2px) rotate(-2deg); }
-    80% { transform: translate(-2px, -2px) rotate(2deg); }
-    90% { transform: translate(2px, 3px) rotate(0deg); }
-    100% { transform: translate(2px, -3px) rotate(-2deg); }
+
+  /* 💡 깔끔하고 예쁜 Last Pang & END 전용 고정 텍스트 연출 (흔들림 제거) */
+  .last-pang-text {
+    font-size: calc(38px + 4vw); 
+    color: #ffcc00; 
+    font-weight: 900;
+    text-shadow: 0 0 15px #ffcc00, 0 0 30px #ff6600, 3px 3px 6px #000; 
+    letter-spacing: 5px; 
+    text-align: center;
+    line-height: 1.25;
   }
-  .shake-text {
-    animation: shake 0.1s infinite; font-size: calc(40px + 6vw); color: #ff5555; font-weight: 900;
-    text-shadow: 0 0 20px black, 0 0 40px #ff0000; letter-spacing: 4px; text-align: center;
+
+  .end-text {
+    font-size: calc(44px + 5vw); 
+    color: #00e5ff; 
+    font-weight: 900;
+    text-shadow: 0 0 15px #00e5ff, 0 0 30px #0066ff, 3px 3px 6px #000; 
+    letter-spacing: 6px; 
+    text-align: center;
   }
 
   @keyframes countPop {
@@ -332,19 +362,20 @@
   <div id="mission-toast">🎉 미션 클리어! (+0점)</div>
 </div>
 
-<!-- 인게임 하단 버튼: 다시 하기로 변경 -->
 <button id="btn-ingame-restart" class="btn-restart">다시 하기</button>
 
 <div id="countdown-overlay" style="display: none;">
   <div id="countdown-num" class="count-text">3</div>
 </div>
 
+<!-- 💡 LAST PANG 텍스트 오버레이 (두 줄 표시) -->
 <div id="timeover-overlay" style="display: none;">
-  <div class="shake-text">TIME OVER</div>
+  <div class="last-pang-text">LAST<br>PANG</div>
 </div>
 
+<!-- 💡 END 텍스트 오버레이 -->
 <div id="end-overlay" style="display: none;">
-  <div class="shake-text">END</div>
+  <div class="end-text">END</div>
 </div>
 
 <div id="nomatch-overlay" style="display: none;">
@@ -369,7 +400,6 @@
       <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
       <tbody id="ranking-list"></tbody>
     </table>
-    <!-- 결과창 버튼: 클릭 시 즉시 게임 재시작 -->
     <button class="btn-restart" id="btn-modal-restart">다시 하기</button>
   </div>
 </div>
@@ -386,7 +416,7 @@
 </div>
 
 <script>
-  const CLIENT_VERSION = '261013.1';
+  const CLIENT_VERSION = '261013.2';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -403,7 +433,7 @@
   let isEndTriggered = false;
   let isLastPangActive = false;
   let isTimerPaused = false;
-  let isVersionValid = true; // 캐시 기반 우선 실행 허용
+  let isVersionValid = true;
 
   let isAutoPlay = false;
   let timerClickCount = 0;
@@ -420,6 +450,8 @@
   let timeLeft = 60;
   let timerInterval = null;
   let globalRankings = [];
+
+  let hintTimeout = null;
 
   const boardElement = document.getElementById('board');
   const boardContainer = document.getElementById('board-container');
@@ -572,9 +604,7 @@
     });
   }
 
-  // 💡 초기화 로직: 로컬 캐시 데이터 즉시 적용 후 백그라운드 서버 비동기 갱신
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. 기본 이미지 사전 바인딩
     blockImages = {
       '모몬가': 'https://lh3.googleusercontent.com/d/1UDcVkT-kfGifazD-hsMQgFLfXmoaP7Rl',
       '시사': 'https://lh3.googleusercontent.com/d/1F7q3JdODBuXgJ2AN0JAKyILP8crQuxRN',
@@ -587,7 +617,6 @@
     blockTypes = Object.keys(blockImages);
     preloadImages();
 
-    // 2. 로컬 캐시에서 즉시 가져와 UI 딜레이 없이 그리기
     const cachedRankings = localStorage.getItem('match3_rankings_cache');
     if (cachedRankings) {
       try {
@@ -604,7 +633,6 @@
       } catch(e){}
     }
 
-    // 3. 백그라운드 비동기 서버 갱신
     loadServerData().then(() => {
       renderStartRankings();
     });
@@ -659,10 +687,14 @@
     versionModal.style.display = 'flex';
   }
 
-  // 💡 [핵심] '다시 하기' 버튼 클릭 시 처음으로 가지 않고 즉시 게임 재시작
   function restartGameDirectly() {
+    try {
+      fetch(`${SCRIPT_URL}?action=play&t=${Date.now()}`);
+    } catch(err){}
+
     clearInterval(timerInterval);
     clearInterval(autoPlayInterval);
+    clearTimeout(hintTimeout);
     isAutoPlay = false;
     timerElement.classList.remove('auto-active');
     
@@ -672,10 +704,7 @@
     countdownOverlay.style.display = 'none';
     startScreen.style.display = 'none';
 
-    // 즉시 게임 재초기화
     initGame();
-    
-    // 백그라운드로 최신 랭킹 정보 백업 갱신
     loadServerData();
   }
 
@@ -686,14 +715,12 @@
     let name = playerNameInput.value.trim() || '익명';
     registerSection.style.display = 'none';
     
-    // 로컬 랭킹에 즉시 추가해서 화면 반응속도 극대화 (Optimistic UI)
     globalRankings.push({ name: name, score: score });
     globalRankings.sort((a, b) => b.score - a.score);
     globalRankings = globalRankings.slice(0, 10);
     renderRankings(rankingList);
     localStorage.setItem('match3_rankings_cache', JSON.stringify(globalRankings));
 
-    // 백그라운드 서버 저장
     await saveScore(name, score);
     await loadServerData();
     renderRankings(rankingList);
@@ -888,6 +915,64 @@
     return { type: blockTypes[Math.floor(Math.random() * blockTypes.length)], effect: 'normal' };
   }
 
+  function resetHintTimer() {
+    clearTimeout(hintTimeout);
+    clearHintHighlight();
+    if (isGameOver || isProcessing || isTimerPaused) return;
+
+    hintTimeout = setTimeout(() => {
+      showMatchHint();
+    }, 3000);
+  }
+
+  function clearHintHighlight() {
+    const cells = boardElement.children;
+    for (let i = 0; i < cells.length; i++) {
+      cells[i].classList.remove('hint-highlight');
+    }
+  }
+
+  function showMatchHint() {
+    if (isGameOver || isProcessing || isTimerPaused) return;
+
+    let possibleMove = findOnePossibleMove();
+    if (possibleMove) {
+      let idx = possibleMove.r * width + possibleMove.c;
+      const cells = boardElement.children;
+      if (cells[idx]) {
+        cells[idx].classList.add('hint-highlight');
+      }
+    }
+  }
+
+  function findOnePossibleMove() {
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈')) {
+          return { r, c };
+        }
+      }
+    }
+
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (c < width - 1) {
+          swap(r, c, r, c + 1);
+          let matchData = checkAndGetMatches(-1, -1, -1, -1);
+          swap(r, c, r, c + 1);
+          if (matchData.hasMatch) return { r, c };
+        }
+        if (r < height - 1) {
+          swap(r, c, r + 1, c);
+          let matchData = checkAndGetMatches(-1, -1, -1, -1);
+          swap(r, c, r + 1, c);
+          if (matchData.hasMatch) return { r, c };
+        }
+      }
+    }
+    return null;
+  }
+
   function runStartCountdown(callback) {
     isTimerPaused = true;
     countdownOverlay.style.display = 'flex';
@@ -905,6 +990,7 @@
       } else {
         countdownOverlay.style.display = 'none';
         isTimerPaused = false;
+        resetHintTimer();
         if (callback) callback();
       }
     }
@@ -916,6 +1002,7 @@
     clearInterval(timerInterval);
     timeLeft = 60;
     timerElement.innerText = `남은 시간: ${timeLeft}`;
+    boardElement.classList.remove('danger-mode');
     
     runStartCountdown(() => {
       timerInterval = setInterval(() => {
@@ -923,11 +1010,21 @@
         
         timeLeft--;
         timerElement.innerText = `남은 시간: ${timeLeft}`;
+
+        // 💡 10초 이하 남았을 때 보드 테두리 빨간색 점멸 활성화
+        if (timeLeft <= 10 && timeLeft > 0) {
+          boardElement.classList.add('danger-mode');
+        } else {
+          boardElement.classList.remove('danger-mode');
+        }
+
         if (timeLeft <= 0) {
           timeLeft = 0;
           timerElement.innerText = `남은 시간: 0`;
+          boardElement.classList.remove('danger-mode');
           clearInterval(timerInterval);
           clearInterval(autoPlayInterval);
+          clearTimeout(hintTimeout);
           isAutoPlay = false;
           timerElement.classList.remove('auto-active');
           isGameOver = true;
@@ -941,9 +1038,13 @@
     if (isGameOver && !isProcessing && !isEndTriggered) {
       isEndTriggered = true;
       clearInterval(autoPlayInterval);
+      clearTimeout(hintTimeout);
+      clearHintHighlight();
+      boardElement.classList.remove('danger-mode');
       isAutoPlay = false;
       timerElement.classList.remove('auto-active');
 
+      // 💡 LAST PANG 1초간 정적 유지
       timeoverOverlay.style.display = 'flex';
       
       setTimeout(() => {
@@ -971,6 +1072,7 @@
       processDestruction(toRemove, []);
     } else {
       setTimeout(() => {
+        // 💡 END 1초간 정적 유지
         endOverlay.style.display = 'flex';
         setTimeout(() => {
           endOverlay.style.display = 'none';
@@ -983,8 +1085,8 @@
   function showGameOverModal() {
     document.getElementById('final-score').innerText = `내 점수: ${score}`;
     modal.style.display = 'flex';
+    clearTimeout(hintTimeout);
     
-    // 캐시 기반 즉시 그리기 (기다림 제거)
     renderRankings(rankingList);
     
     let isTop10 = false;
@@ -1000,7 +1102,6 @@
       registerSection.style.display = 'none';
     }
 
-    // 백그라운드 서버 최신화
     loadServerData().then(() => {
       renderRankings(rankingList);
     });
@@ -1022,11 +1123,13 @@
 
   function initGame() {
     modal.style.display = 'none'; timeoverOverlay.style.display = 'none'; endOverlay.style.display = 'none'; nomatchOverlay.style.display = 'none'; countdownOverlay.style.display = 'none';
+    boardElement.classList.remove('danger-mode');
     isGameOver = false; isProcessing = false; 
     isEndTriggered = false; isLastPangActive = false; isTimerPaused = false;
     isAutoPlay = false; timerClickCount = 0;
     timerElement.classList.remove('auto-active');
     clearInterval(autoPlayInterval);
+    clearTimeout(hintTimeout);
     score = 0; updateScore(0);
     selectedCell = null;
     initMissions();
@@ -1082,6 +1185,7 @@
 
   function onPointerDown(e, r, c) {
     if (isProcessing || isGameOver || isTimerPaused) return;
+    resetHintTimer();
     isDragging = true; dragStart = { r, c };
     if (!selectedCell) { selectedCell = { r, c }; renderBoard(); } 
     else { attemptSwap(selectedCell.r, selectedCell.c, r, c); }
@@ -1096,6 +1200,7 @@
   }
 
   function attemptSwap(r1, c1, r2, c2) {
+    resetHintTimer();
     const dr = Math.abs(r1 - r2); const dc = Math.abs(c1 - c2);
     if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
       isProcessing = true; 
@@ -1335,6 +1440,7 @@
   function handleNoMatch() {
     isProcessing = true;
     isTimerPaused = true;
+    clearTimeout(hintTimeout);
     nomatchOverlay.style.display = 'flex';
 
     setTimeout(() => {
@@ -1347,10 +1453,12 @@
       renderBoard();
       isProcessing = false;
       isTimerPaused = false;
+      resetHintTimer();
     }, 1000);
   }
 
   function processDestruction(initialToRemove, newSpecials) {
+    resetHintTimer();
     let queue = []; let finalToRemove = Array(height).fill().map(() => Array(width).fill(false));
 
     for(let r=0; r<height; r++) {
@@ -1444,6 +1552,8 @@
         } else {
           if (!hasPossibleMoves()) {
             handleNoMatch();
+          } else {
+            resetHintTimer();
           }
         }
       }
