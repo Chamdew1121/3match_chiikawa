@@ -96,6 +96,7 @@
     box-shadow: 0 6px 15px rgba(255,85,85,0.4); transition: transform 0.2s;
   }
   #btn-start:hover { transform: scale(1.05); }
+  #btn-start:disabled { background-color: #666; cursor: not-allowed; }
 
   .game-title {
     font-size: calc(20px + 1.5vw);
@@ -415,7 +416,8 @@
 </div>
 
 <script>
-  const CLIENT_VERSION = '261013.3';
+  // 💡 최신 버전: 261013.5
+  const CLIENT_VERSION = '261013.5';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -447,7 +449,7 @@
   let isDragging = false;
   let missions = [];
   let timeLeft = 60;
-  let timerInterval = null;
+  let timerAnimationFrame = null; // 타임스탬프 기반 프레임 제어
   let globalRankings = [];
 
   let hintTimeout = null;
@@ -470,6 +472,7 @@
   const endOverlay = document.getElementById('end-overlay');
   const nomatchOverlay = document.getElementById('nomatch-overlay');
   const btnRefreshRank = document.getElementById('btn-refresh-rank');
+  const btnStart = document.getElementById('btn-start');
   const missionToast = document.getElementById('mission-toast');
   const prizeContainer = document.getElementById('prize-container');
   const prizeImage = document.getElementById('prize-image');
@@ -665,10 +668,13 @@
     });
   });
 
-  document.getElementById('btn-start').addEventListener('click', async () => {
-    // 버전을 동기로 정확히 체크 후 시작
+  btnStart.addEventListener('click', async () => {
+    btnStart.disabled = true;
+    
     await loadServerData();
+    
     if (!isVersionValid) {
+      btnStart.disabled = false;
       showVersionAlertModal("현재 버젼은 이용할 수 없어요.<br>아래 버튼을 눌러 업데이트를 받아주세요.");
       return;
     }
@@ -678,9 +684,11 @@
     } catch(err){}
 
     try {
+      btnStart.disabled = false;
       startScreen.style.display = 'none';
       initGame();
     } catch(e) {
+      btnStart.disabled = false;
       console.error("게임 초기화 오류:", e);
       alert("오류가 발생했습니다. 새로고침 후 다시 시도해주세요.");
     }
@@ -691,15 +699,12 @@
     versionModal.style.display = 'flex';
   }
 
-  // 💡 '다시 하기' 개선: 카운트다운/일시정지 중 클릭 방지 + 버전 동기 체크
   async function restartGameDirectly() {
-    if (isTimerPaused) return; // 3-2-1 카운트다운 중 실행 클릭 차단
+    if (isTimerPaused) return;
 
-    // 1. 버튼 비활성화로 연속 클릭 차단
     btnIngameRestart.disabled = true;
     btnModalRestart.disabled = true;
 
-    // 2. 서버 버전 동기 체크
     await loadServerData();
     
     if (!isVersionValid) {
@@ -709,12 +714,11 @@
       return;
     }
 
-    // 3. 플레이 수 +1 전송
     try {
       fetch(`${SCRIPT_URL}?action=play&t=${Date.now()}`);
     } catch(err){}
 
-    clearInterval(timerInterval);
+    cancelAnimationFrame(timerAnimationFrame);
     clearInterval(autoPlayInterval);
     clearTimeout(hintTimeout);
     isAutoPlay = false;
@@ -997,7 +1001,6 @@
     return null;
   }
 
-  // 💡 카운트다운 시작 시 버튼 비활성화, 종료 후 활성화
   function runStartCountdown(callback) {
     isTimerPaused = true;
     btnIngameRestart.disabled = true;
@@ -1028,38 +1031,55 @@
     playNextCount();
   }
 
+  // 💡 [핵심] 실제 시간 타임스탬프 기반의 정밀 타이머
   function startTimer() {
-    clearInterval(timerInterval);
+    cancelAnimationFrame(timerAnimationFrame);
     timeLeft = 60;
     timerElement.innerText = `남은 시간: ${timeLeft}`;
     boardElement.classList.remove('danger-mode');
     
     runStartCountdown(() => {
-      timerInterval = setInterval(() => {
-        if (isTimerPaused) return;
-        
-        timeLeft--;
-        timerElement.innerText = `남은 시간: ${timeLeft}`;
+      let startTime = performance.now();
+      let totalDurationMs = 60000; // 정확히 60초 (60,000ms)
 
-        if (timeLeft <= 10 && timeLeft > 0) {
-          boardElement.classList.add('danger-mode');
-        } else {
-          boardElement.classList.remove('danger-mode');
+      function updatePrecisionTimer(currentTime) {
+        if (isTimerPaused) {
+          startTime = currentTime - (totalDurationMs - (timeLeft * 1000));
+          timerAnimationFrame = requestAnimationFrame(updatePrecisionTimer);
+          return;
         }
 
-        if (timeLeft <= 0) {
+        let elapsedMs = currentTime - startTime;
+        let remainingSeconds = Math.ceil((totalDurationMs - elapsedMs) / 1000);
+
+        if (remainingSeconds !== timeLeft) {
+          timeLeft = Math.max(0, remainingSeconds);
+          timerElement.innerText = `남은 시간: ${timeLeft}`;
+
+          if (timeLeft <= 10 && timeLeft > 0) {
+            boardElement.classList.add('danger-mode');
+          } else {
+            boardElement.classList.remove('danger-mode');
+          }
+        }
+
+        if (elapsedMs >= totalDurationMs || timeLeft <= 0) {
           timeLeft = 0;
           timerElement.innerText = `남은 시간: 0`;
           boardElement.classList.remove('danger-mode');
-          clearInterval(timerInterval);
+          cancelAnimationFrame(timerAnimationFrame);
           clearInterval(autoPlayInterval);
           clearTimeout(hintTimeout);
           isAutoPlay = false;
           timerElement.classList.remove('auto-active');
           isGameOver = true;
           checkAndTriggerEnd();
+        } else {
+          timerAnimationFrame = requestAnimationFrame(updatePrecisionTimer);
         }
-      }, 1000);
+      }
+
+      timerAnimationFrame = requestAnimationFrame(updatePrecisionTimer);
     });
   }
 
