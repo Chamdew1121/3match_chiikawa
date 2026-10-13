@@ -101,34 +101,66 @@
   .game-title {
     font-size: calc(20px + 1.5vw);
     margin-top: 0;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-align: center;
   }
 
   #top-bar {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; flex-direction: column; gap: 8px;
     width: 100%; max-width: 500px; margin-bottom: 10px;
   }
-  #score, #timer {
-    font-size: calc(16px + 1vw); font-weight: bold; color: #ffcc00; background: #333;
-    padding: 8px 14px; border-radius: 8px; border: 2px solid #555;
+
+  #score-box {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #333; padding: 6px 14px; border-radius: 8px; border: 2px solid #555;
+    font-size: calc(16px + 0.8vw); font-weight: bold; color: #ffcc00;
   }
-  #timer { color: #ff5555; }
-  #timer.auto-active {
-    border-color: #00ff00;
-    color: #00ff00;
-    box-shadow: 0 0 10px #00ff00;
+
+  #timer-gauge-container {
+    position: relative;
+    width: 100%;
+    height: 28px;
+    background-color: #1a1a1a;
+    border: 2px solid #555;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
   }
-  
+
+  #timer-gauge-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #ff416c, #ff4b2b);
+    transition: width 0.3s linear;
+  }
+
+  #timer-text {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 16px; font-weight: 900; color: #ffffff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9);
+    pointer-events: none;
+  }
+
+  @keyframes gaugeDangerPulse {
+    0%, 100% { border-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
+    50% { border-color: #660000; box-shadow: 0 0 0px transparent; }
+  }
+  #timer-gauge-container.danger-mode {
+    animation: gaugeDangerPulse 0.6s infinite ease-in-out;
+  }
+
   #missions-panel {
-    display: flex; gap: 8px; width: 100%; max-width: 500px; margin-bottom: 12px;
+    display: flex; gap: 8px; width: 100%; max-width: 500px; margin-bottom: 10px;
   }
   .mission-card {
-    flex: 1; background: #333; border-radius: 10px; padding: 8px 4px;
-    font-size: 15px; text-align: center; border: 2px solid #555;
+    flex: 1; background: #333; border-radius: 10px; padding: 6px 4px;
+    font-size: 14px; text-align: center; border: 2px solid #555;
   }
   .mission-card.completed { border-color: #ffcc00; background: #4a4011; }
-  .mission-reward { font-size: 13px; color: #ffcc00; margin-top: 4px; font-weight: bold; }
+  .mission-reward { font-size: 13px; color: #ffcc00; margin-top: 2px; font-weight: bold; }
+  .mission-reward.time-reward { color: #00ffcc; }
 
   #board-container {
     position: relative;
@@ -158,7 +190,7 @@
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
   }
   #board.danger-mode {
-    animation: dangerPulse 1.2s infinite ease-in-out;
+    animation: dangerPulse 0.6s infinite ease-in-out;
   }
   
   .cell {
@@ -216,6 +248,10 @@
     pointer-events: none; z-index: 80;
     animation: floatUpFade 0.5s ease-out forwards;
   }
+  .time-popup {
+    color: #00ffcc !important;
+    text-shadow: 2px 2px 4px #000, 0 0 10px #00e5ff !important;
+  }
 
   @keyframes missionPopFade {
     0% { opacity: 0; transform: translate(-50%, -10px) scale(0.8); }
@@ -229,7 +265,7 @@
     left: 50%; 
     transform: translateX(-50%);
     background: rgba(255, 204, 0, 0.95); color: #111;
-    padding: 10px 20px; border-radius: 20px; font-size: calc(16px + 1vw); font-weight: 900;
+    padding: 10px 20px; border-radius: 20px; font-size: calc(15px + 0.8vw); font-weight: 900;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6); z-index: 180; pointer-events: none;
     display: none; border: 3px solid #fff;
     white-space: nowrap;
@@ -354,8 +390,13 @@
 
 <h2 class="game-title">치이카와 맞추기 팡팡 ✨</h2>
 <div id="top-bar">
-  <div id="score">점수: 0</div>
-  <div id="timer">남은 시간: 60</div>
+  <div id="score-box">
+    <span id="score">점수: 0</span>
+  </div>
+  <div id="timer-gauge-container">
+    <div id="timer-gauge-bar"></div>
+    <div id="timer-text">남은 시간: 60초</div>
+  </div>
 </div>
 <div id="missions-panel"></div>
 
@@ -416,8 +457,7 @@
 </div>
 
 <script>
-  // 💡 최신 버전: 261013.7
-  const CLIENT_VERSION = '261013.7';
+  const CLIENT_VERSION = '261013.8';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -449,7 +489,10 @@
   let isDragging = false;
   let missions = [];
   let timeLeft = 60;
+  let maxTime = 60;
   let timerAnimationFrame = null;
+  let timerStartTime = 0;
+  let timerTotalDurationMs = 60000;
   let globalRankings = [];
 
   let hintTimeout = null;
@@ -457,7 +500,9 @@
   const boardElement = document.getElementById('board');
   const boardContainer = document.getElementById('board-container');
   const scoreElement = document.getElementById('score');
-  const timerElement = document.getElementById('timer');
+  const timerGaugeContainer = document.getElementById('timer-gauge-container');
+  const timerGaugeBar = document.getElementById('timer-gauge-bar');
+  const timerText = document.getElementById('timer-text');
   const missionsPanel = document.getElementById('missions-panel');
   const modal = document.getElementById('game-over-modal');
   const versionModal = document.getElementById('version-alert-modal');
@@ -521,14 +566,14 @@
     }
   }
 
-  timerElement.addEventListener('click', () => {
+  timerGaugeContainer.addEventListener('click', () => {
     if (isGameOver || isAutoPlay || isTimerPaused) return;
     timerClickCount++;
     clearTimeout(timerClickTimeout);
     
     if (timerClickCount >= 10) {
       isAutoPlay = true;
-      timerElement.classList.add('auto-active');
+      timerGaugeContainer.classList.add('auto-active');
       timerClickCount = 0;
       startAutoPlay();
     } else {
@@ -556,14 +601,14 @@
       for (let c = 0; c < width; c++) {
         let b = board[r][c];
         if (!b) continue;
-        let isSpecial = (b.effect !== 'normal' || b.type === '🌈');
+        let isSpecial = (b.effect !== 'normal' || b.type === '🌈' || b.type === '⏰');
         if (isSpecial) {
           let dirs = [[0,1],[1,0],[0,-1],[-1,0]];
           for (let d of dirs) {
             let nr = r + d[0], nc = c + d[1];
             if (nr >= 0 && nr < height && nc >= 0 && nc < width && board[nr][nc]) {
               let nb = board[nr][nc];
-              if (nb.effect !== 'normal' || nb.type === '🌈') {
+              if (nb.effect !== 'normal' || nb.type === '🌈' || nb.type === '⏰') {
                 attemptSwap(r, c, nr, nc);
                 return;
               }
@@ -581,7 +626,7 @@
           if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
             swap(r, c, nr, nc);
             let matchData = checkAndGetMatches(-1, -1, -1, -1);
-            let isSpecialMove = (board[nr][nc] && (board[nr][nc].type === '🌈' || board[r][c].type === '🌈'));
+            let isSpecialMove = (board[nr][nc] && (board[nr][nc].type === '🌈' || board[r][c].type === '🌈' || board[nr][nc].type === '⏰' || board[r][c].type === '⏰'));
             swap(r, c, nr, nc);
             if (matchData.hasMatch || isSpecialMove) {
               attemptSwap(r, c, nr, nc);
@@ -670,7 +715,6 @@
 
   btnStart.addEventListener('click', async () => {
     btnStart.disabled = true;
-    
     await loadServerData();
     
     if (!isVersionValid) {
@@ -722,7 +766,7 @@
     clearInterval(autoPlayInterval);
     clearTimeout(hintTimeout);
     isAutoPlay = false;
-    timerElement.classList.remove('auto-active');
+    timerGaugeContainer.classList.remove('auto-active');
     
     modal.style.display = 'none';
     timeoverOverlay.style.display = 'none';
@@ -840,12 +884,31 @@
     });
   }
 
+  // 💡 미션 보상: 점수 OR 시간 (3~10초) 단일 보상 할당
   function generateMission() {
     let shuffled = [...blockTypes].sort(() => 0.5 - Math.random());
     let type1 = shuffled[0], type2 = shuffled[1];
     let count1 = Math.floor(Math.random() * 8) + 5;
     let count2 = Math.floor(Math.random() * 8) + 5;
-    return { req: { [type1]: count1, [type2]: count2 }, cur: { [type1]: 0, [type2]: 0 }, reward: (count1 + count2) * 2, completed: false };
+    
+    let isTimeReward = Math.random() < 0.5; // 50% 확률
+    let scoreReward = 0;
+    let timeReward = 0;
+
+    if (isTimeReward) {
+      timeReward = Math.floor(Math.random() * 8) + 3; // 3초 ~ 10초
+    } else {
+      scoreReward = (count1 + count2) * 2; // 점수 보상
+    }
+
+    return { 
+      req: { [type1]: count1, [type2]: count2 }, 
+      cur: { [type1]: 0, [type2]: 0 }, 
+      rewardType: isTimeReward ? 'time' : 'score',
+      reward: scoreReward, 
+      timeReward: timeReward, 
+      completed: false 
+    };
   }
 
   function initMissions() {
@@ -862,24 +925,34 @@
       for (let type in m.req) {
         let current = Math.min(m.cur[type], m.req[type]);
         reqHtml += `<div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:2px;">
-                      <img src="${blockImages[type]}" style="width:22px; height:22px; object-fit:contain;">
+                      <img src="${blockImages[type]}" style="width:20px; height:20px; object-fit:contain;">
                       <span>${current}/${m.req[type]}</span>
                     </div>`;
       }
-      cardElem.innerHTML = `${reqHtml}<div class="mission-reward">+${m.reward}점</div>`;
+      
+      let rewardText = m.rewardType === 'time' 
+        ? `<div class="mission-reward time-reward">+${m.timeReward}초</div>` 
+        : `<div class="mission-reward">+${m.reward}점</div>`;
+
+      cardElem.innerHTML = `${reqHtml}${rewardText}`;
       missionsPanel.appendChild(cardElem);
     });
   }
 
-  function showMissionToast(reward) {
-    missionToast.innerText = `🎉 미션 클리어! (+${reward}점)`;
+  function showMissionToast(m) {
+    if (m.rewardType === 'time') {
+      missionToast.innerText = `🎉 미션 클리어! (Time +${m.timeReward}초)`;
+    } else {
+      missionToast.innerText = `🎉 미션 클리어! (+${m.reward}점)`;
+    }
+    
     missionToast.style.display = 'block';
     missionToast.style.animation = 'none';
     missionToast.offsetHeight;
-    missionToast.style.animation = 'missionPopFade 1s ease-in-out forwards';
+    missionToast.style.animation = 'missionPopFade 1.2s ease-in-out forwards';
     setTimeout(() => {
       missionToast.style.display = 'none';
-    }, 1000);
+    }, 1200);
   }
 
   function updateMissions(poppedCounts) {
@@ -893,13 +966,28 @@
       for (let type in m.req) { if (m.cur[type] < m.req[type]) isDone = false; }
       if (isDone) {
         m.completed = true; 
-        updateScore(m.reward); 
+        if (m.rewardType === 'time') {
+          addTime(m.timeReward);
+        } else {
+          updateScore(m.reward); 
+        }
         changed = true;
-        showMissionToast(m.reward);
-        setTimeout(() => { if(!isGameOver){ missions[index] = generateMission(); renderMissions(); } }, 1000);
+        showMissionToast(m);
+        setTimeout(() => { if(!isGameOver){ missions[index] = generateMission(); renderMissions(); } }, 1200);
       }
     });
     if (changed) renderMissions();
+  }
+
+  function addTime(seconds) {
+    if (isGameOver) return;
+    timeLeft += seconds;
+    if (timeLeft > maxTime) maxTime = timeLeft;
+    
+    timerStartTime += (seconds * 1000);
+    timerTotalDurationMs += (seconds * 1000);
+    
+    updateGaugeUI();
   }
 
   function updateScore(points) {
@@ -907,39 +995,48 @@
     scoreElement.innerText = `점수: ${score}`;
   }
 
-  function showScorePopupAtCenter(poppedCells, points) {
-    if (poppedCells.length === 0 || points <= 0) return;
+  function showScorePopupAtCenter(poppedCells, points, timeAdded = 0) {
+    if (poppedCells.length === 0 && timeAdded === 0) return;
 
-    let sumR = 0, sumC = 0;
-    poppedCells.forEach(cell => {
-      sumR += cell.r;
-      sumC += cell.c;
-    });
+    let posX = 250, posY = 250;
+    if (poppedCells.length > 0) {
+      let sumR = 0, sumC = 0;
+      poppedCells.forEach(cell => { sumR += cell.r; sumC += cell.c; });
+      let avgR = sumR / poppedCells.length;
+      let avgC = sumC / poppedCells.length;
 
-    let avgR = sumR / poppedCells.length;
-    let avgC = sumC / poppedCells.length;
+      let boardRect = boardElement.getBoundingClientRect();
+      let cellWidth = (boardRect.width - 20 - 28) / 8;
+      posX = 10 + avgC * (cellWidth + 4) + cellWidth/2;
+      posY = 10 + avgR * (cellWidth + 4) + cellWidth/2;
+    }
 
-    let boardRect = boardElement.getBoundingClientRect();
-    let cellWidth = (boardRect.width - 20 - 28) / 8;
-    let posX = 10 + avgC * (cellWidth + 4) + cellWidth/2;
-    let posY = 10 + avgR * (cellWidth + 4) + cellWidth/2;
+    if (points > 0) {
+      let popup = document.createElement('div');
+      popup.className = 'score-popup';
+      popup.innerText = `+${points}점`;
+      popup.style.left = posX + 'px';
+      popup.style.top = posY + 'px';
+      boardContainer.appendChild(popup);
+      setTimeout(() => { if (popup && popup.parentNode) popup.parentNode.removeChild(popup); }, 500);
+    }
 
-    let popup = document.createElement('div');
-    popup.className = 'score-popup';
-    popup.innerText = `+${points}점`;
-    popup.style.left = posX + 'px';
-    popup.style.top = posY + 'px';
-
-    boardContainer.appendChild(popup);
-
-    setTimeout(() => {
-      if (popup && popup.parentNode) {
-        popup.parentNode.removeChild(popup);
-      }
-    }, 500);
+    if (timeAdded > 0) {
+      let timePopup = document.createElement('div');
+      timePopup.className = 'score-popup time-popup';
+      timePopup.innerText = `Time +${timeAdded}초`;
+      timePopup.style.left = posX + 'px';
+      timePopup.style.top = (posY - 25) + 'px';
+      boardContainer.appendChild(timePopup);
+      setTimeout(() => { if (timePopup && timePopup.parentNode) timePopup.parentNode.removeChild(timePopup); }, 600);
+    }
   }
 
   function getRandomBlock() {
+    let isTimeBlock = (Math.random() < 0.05);
+    if (isTimeBlock) {
+      return { type: '⏰', effect: 'normal' };
+    }
     return { type: blockTypes[Math.floor(Math.random() * blockTypes.length)], effect: 'normal' };
   }
 
@@ -973,14 +1070,12 @@
     }
   }
 
-  // 💡 [개선된 힌트 탐색 로직] 실제 매치 파괴가 가능한 수만 정확히 검증
   function findOnePossibleMove() {
-    // 1. 특수 블록 + 특수 블록 인접 조합 탐색
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let b1 = board[r][c];
         if (!b1) continue;
-        let isSp1 = (b1.effect !== 'normal' || b1.type === '🌈');
+        let isSp1 = (b1.effect !== 'normal' || b1.type === '🌈' || b1.type === '⏰');
         if (!isSp1) continue;
 
         let dirs = [[0, 1], [1, 0]];
@@ -988,16 +1083,13 @@
           let nr = r + d[0], nc = c + d[1];
           if (nr >= 0 && nr < height && nc >= 0 && nc < width && board[nr][nc]) {
             let b2 = board[nr][nc];
-            let isSp2 = (b2.effect !== 'normal' || b2.type === '🌈');
-            if (isSp2) {
-              return { r, c }; // 특수 블록 조합 매치 힌트
-            }
+            let isSp2 = (b2.effect !== 'normal' || b2.type === '🌈' || b2.type === '⏰');
+            if (isSp2) return { r, c };
           }
         }
       }
     }
 
-    // 2. 스왑 시 실제 3개 이상 클리어되는 일반/특수 이동 탐색
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let dirs = [[0, 1], [1, 0]];
@@ -1010,12 +1102,10 @@
 
             swap(r, c, nr, nc);
             let matchData = checkAndGetMatches(-1, -1, -1, -1);
-            let isRainbowMove = (b1.type === '🌈' || b2.type === '🌈');
+            let isSpecialMove = (b1.type === '🌈' || b2.type === '🌈' || b1.type === '⏰' || b2.type === '⏰');
             swap(r, c, nr, nc);
 
-            if (matchData.hasMatch || isRainbowMove) {
-              return { r, c }; // 실제 파괴 유효 수 힌트 반환
-            }
+            if (matchData.hasMatch || isSpecialMove) return { r, c };
           }
         }
       }
@@ -1053,46 +1143,53 @@
     playNextCount();
   }
 
+  function updateGaugeUI() {
+    timerText.innerText = `남은 시간: ${timeLeft}초`;
+    let pct = Math.min(100, Math.max(0, (timeLeft / maxTime) * 100));
+    timerGaugeBar.style.width = pct + '%';
+
+    if (timeLeft <= 10 && timeLeft > 0) {
+      boardElement.classList.add('danger-mode');
+      timerGaugeContainer.classList.add('danger-mode');
+    } else {
+      boardElement.classList.remove('danger-mode');
+      timerGaugeContainer.classList.remove('danger-mode');
+    }
+  }
+
   function startTimer() {
     cancelAnimationFrame(timerAnimationFrame);
     timeLeft = 60;
-    timerElement.innerText = `남은 시간: ${timeLeft}`;
-    boardElement.classList.remove('danger-mode');
+    maxTime = 60;
+    updateGaugeUI();
     
     runStartCountdown(() => {
-      let startTime = performance.now();
-      let totalDurationMs = 60000;
+      timerStartTime = performance.now();
+      timerTotalDurationMs = 60000;
 
       function updatePrecisionTimer(currentTime) {
         if (isTimerPaused) {
-          startTime = currentTime - (totalDurationMs - (timeLeft * 1000));
+          timerStartTime = currentTime - (timerTotalDurationMs - (timeLeft * 1000));
           timerAnimationFrame = requestAnimationFrame(updatePrecisionTimer);
           return;
         }
 
-        let elapsedMs = currentTime - startTime;
-        let remainingSeconds = Math.ceil((totalDurationMs - elapsedMs) / 1000);
+        let elapsedMs = currentTime - timerStartTime;
+        let remainingSeconds = Math.ceil((timerTotalDurationMs - elapsedMs) / 1000);
 
         if (remainingSeconds !== timeLeft) {
           timeLeft = Math.max(0, remainingSeconds);
-          timerElement.innerText = `남은 시간: ${timeLeft}`;
-
-          if (timeLeft <= 10 && timeLeft > 0) {
-            boardElement.classList.add('danger-mode');
-          } else {
-            boardElement.classList.remove('danger-mode');
-          }
+          updateGaugeUI();
         }
 
-        if (elapsedMs >= totalDurationMs || timeLeft <= 0) {
+        if (elapsedMs >= timerTotalDurationMs || timeLeft <= 0) {
           timeLeft = 0;
-          timerElement.innerText = `남은 시간: 0`;
-          boardElement.classList.remove('danger-mode');
+          updateGaugeUI();
           cancelAnimationFrame(timerAnimationFrame);
           clearInterval(autoPlayInterval);
           clearTimeout(hintTimeout);
           isAutoPlay = false;
-          timerElement.classList.remove('auto-active');
+          timerGaugeContainer.classList.remove('auto-active');
           isGameOver = true;
           checkAndTriggerEnd();
         } else {
@@ -1104,7 +1201,6 @@
     });
   }
 
-// 1. 시간 종료 시 특수 블록 존재 여부에 따른 플로우 제어
   function checkAndTriggerEnd() {
     if (isGameOver && !isProcessing && !isEndTriggered) {
       isEndTriggered = true;
@@ -1112,10 +1208,10 @@
       clearTimeout(hintTimeout);
       clearHintHighlight();
       boardElement.classList.remove('danger-mode');
+      timerGaugeContainer.classList.remove('danger-mode');
       isAutoPlay = false;
-      timerElement.classList.remove('auto-active');
+      timerGaugeContainer.classList.remove('auto-active');
 
-      // 보드 내 특수 블록 유무 체크
       let hasSpecial = false;
       for (let r = 0; r < height; r++) {
         for (let c = 0; c < width; c++) {
@@ -1128,7 +1224,6 @@
       }
 
       if (hasSpecial) {
-        // [특수 블록 있음]: LAST PANG (1초) -> 특수 블록 연쇄 파괴 시작
         timeoverOverlay.style.display = 'flex';
         setTimeout(() => {
           timeoverOverlay.style.display = 'none';
@@ -1136,19 +1231,17 @@
           executeLastPangStep();
         }, 1000);
       } else {
-        // [특수 블록 없음]: LAST PANG 생략 -> 1초 대기 -> END (1초) -> 결과창
         setTimeout(() => {
           endOverlay.style.display = 'flex';
           setTimeout(() => {
             endOverlay.style.display = 'none';
             showGameOverModal();
           }, 1000);
-        }, 1000); // 더 터트릴 것 없음 1초 대기
+        }, 1000);
       }
     }
   }
 
-  // 2. 특수 블록 파괴 단계 제어
   function executeLastPangStep() {
     let toRemove = Array(height).fill().map(() => Array(width).fill(false));
     let foundSpecial = false;
@@ -1156,8 +1249,7 @@
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         if (board[r][c] && board[r][c].effect !== 'normal') {
-          toRemove[r][c] = true; 
-          foundSpecial = true;
+          toRemove[r][c] = true; foundSpecial = true;
         }
       }
     }
@@ -1166,14 +1258,13 @@
       isProcessing = true;
       processDestruction(toRemove, []);
     } else {
-      // 연쇄 파괴 완료 -> 1초 대기 -> END (1초) -> 결과창
       setTimeout(() => {
         endOverlay.style.display = 'flex';
         setTimeout(() => {
           endOverlay.style.display = 'none';
           showGameOverModal();
         }, 1000);
-      }, 1000); // 파괴 완료 후 1초 대기
+      }, 1000);
     }
   }
 
@@ -1219,10 +1310,11 @@
   function initGame() {
     modal.style.display = 'none'; timeoverOverlay.style.display = 'none'; endOverlay.style.display = 'none'; nomatchOverlay.style.display = 'none'; countdownOverlay.style.display = 'none';
     boardElement.classList.remove('danger-mode');
+    timerGaugeContainer.classList.remove('danger-mode');
     isGameOver = false; isProcessing = false; 
     isEndTriggered = false; isLastPangActive = false; isTimerPaused = false;
     isAutoPlay = false; timerClickCount = 0;
-    timerElement.classList.remove('auto-active');
+    timerGaugeContainer.classList.remove('auto-active');
     clearInterval(autoPlayInterval);
     clearTimeout(hintTimeout);
     score = 0; updateScore(0);
@@ -1255,6 +1347,8 @@
         if (b) {
           if (b.type === '🌈') {
             inner.innerText = '🌈';
+          } else if (b.type === '⏰') {
+            inner.innerText = '⏰';
           } else {
             inner.style.backgroundImage = `url('${blockImages[b.type]}')`;
             inner.style.backgroundSize = '85%';
@@ -1307,10 +1401,10 @@
       setTimeout(() => {
         let b1 = board[r1][c1]; let b2 = board[r2][c2];
 
-        let isSpecial1 = (b1.effect !== 'normal' || b1.type === '🌈');
-        let isSpecial2 = (b2.effect !== 'normal' || b2.type === '🌈');
+        let isSpecial1 = (b1.effect !== 'normal' || b1.type === '🌈' || b1.type === '⏰');
+        let isSpecial2 = (b2.effect !== 'normal' || b2.type === '🌈' || b2.type === '⏰');
 
-        if (isSpecial1 && isSpecial2) {
+        if (isSpecial1 && isSpecial2 && b1.type !== '⏰' && b2.type !== '⏰') {
           executeComboSpecial(r1, c1, r2, c2, b1, b2);
           return;
         }
@@ -1507,7 +1601,7 @@
   function hasPossibleMoves() {
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
-        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈')) {
+        if (board[r][c] && (board[r][c].effect !== 'normal' || board[r][c].type === '🌈' || board[r][c].type === '⏰')) {
           return true;
         }
       }
@@ -1604,11 +1698,19 @@
 
     let points = 0; let poppedCounts = {};
     let poppedCells = [];
+    let addedTimeFromBlock = 0;
     const cells = boardElement.children;
+
     for(let r=0; r<height; r++) {
       for(let c=0; c<width; c++) {
         if (finalToRemove[r][c] && board[r][c]) {
-          let type = board[r][c].type; points++;
+          let type = board[r][c].type; 
+          points++;
+
+          if (type === '⏰') {
+            addedTimeFromBlock += 3;
+          }
+
           if(!poppedCounts[type]) poppedCounts[type] = 0;
           poppedCounts[type]++;
           poppedCells.push({ r, c });
@@ -1621,8 +1723,12 @@
       }
     }
 
+    if (addedTimeFromBlock > 0) {
+      addTime(addedTimeFromBlock);
+    }
+
     updateScore(points); updateMissions(poppedCounts);
-    showScorePopupAtCenter(poppedCells, points);
+    showScorePopupAtCenter(poppedCells, points, addedTimeFromBlock);
 
     setTimeout(() => {
       for(let r=0; r<height; r++) {
