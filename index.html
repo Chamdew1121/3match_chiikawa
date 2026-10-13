@@ -116,7 +116,7 @@
     font-size: calc(16px + 0.8vw); font-weight: bold; color: #ffcc00;
   }
 
-  /* 💡 높이가 반으로 줄어든(14px) 얇은 슬림 타이머 게이지 바 */
+  /* 💡 미션 패널과 게임 보드 사이로 이동한 슬림 타이머 게이지 (14px) */
   #timer-gauge-container {
     position: relative;
     width: 100%; max-width: 500px;
@@ -145,7 +145,7 @@
     pointer-events: none;
   }
 
-  /* 💡 점멸 속도 완화: 0.6s -> 1.2s */
+  /* 💡 점멸 주기 완화: 0.6s -> 1.2s */
   @keyframes gaugeDangerPulse {
     0%, 100% { border-color: #ff0000; box-shadow: 0 0 8px #ff0000; }
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
@@ -188,7 +188,7 @@
     transition: border-color 0.3s ease;
   }
 
-  /* 💡 보드 점멸 속도 완화: 0.6s -> 1.2s */
+  /* 💡 보드 점멸 주기 완화: 0.6s -> 1.2s */
   @keyframes dangerPulse {
     0%, 100% { border-color: #ff0000; box-shadow: 0 0 12px #ff0000; }
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
@@ -237,10 +237,10 @@
   
   .cell:hover { background-color: #555; }
   .cell.selected { background-color: #666; border: 3px solid white; box-sizing: border-box; z-index: 10; }
-  .effect-icon { position: absolute; font-size: 16px; bottom: 2px; right: 2px; text-shadow: 2px 2px 3px black; }
   
-  /* 💡 일반 블록에 부착되는 시계 스티커 아이콘 위치 */
-  .time-icon { position: absolute; font-size: 15px; top: 2px; left: 2px; text-shadow: 2px 2px 3px black; }
+  /* 💡 특수 블록 아이콘 축소 (12px) 및 위치 우측 하단 고정 */
+  .effect-icon { position: absolute; font-size: 12px; bottom: 2px; right: 2px; text-shadow: 1px 1px 2px black; }
+  .time-icon { position: absolute; font-size: 12px; bottom: 2px; right: 2px; text-shadow: 1px 1px 2px black; }
 
   @keyframes floatUpFade {
     0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
@@ -413,7 +413,6 @@
 
 <div id="missions-panel"></div>
 
-<!-- 💡 미션 패널과 게임 보드 사이로 이동된 슬림 타이머 게이지 바 -->
 <div id="timer-gauge-container">
   <div id="timer-gauge-bar"></div>
   <div id="timer-text">남은 시간: 60초</div>
@@ -1071,10 +1070,10 @@
     }
   }
 
-  // 💡 독립된 시계 블록 대신 일반 캐릭터 블록에 5% 확률로 ⏰ 속성을 부여하는 로직
+  // 💡 출현 확률 3%로 하향 및 일반 캐릭터 블록 부착 속성 생성
   function getRandomBlock() {
     let randType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
-    let hasClock = (Math.random() < 0.05); // 5% 확률로 시계 아이콘 부착
+    let hasClock = (Math.random() < 0.03); // 3% 확률로 시계 아이콘 부착
     return { type: randType, effect: 'normal', hasClock: hasClock };
   }
 
@@ -1108,9 +1107,7 @@
     }
   }
 
-  // 💡 [정밀 검토 완료된 힌트 탐색 알고리즘]
   function findOnePossibleMove() {
-    // 1. 인접한 특수 블록 간 조합 가능 여부 체크
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let b1 = board[r][c];
@@ -1130,7 +1127,6 @@
       }
     }
 
-    // 2. 가로/세로 1칸 교환 시 실제로 연속 3개 이상 정렬되는 이동 체크
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         let dirs = [[0, 1], [1, 0]];
@@ -1399,7 +1395,7 @@
           else if (b.effect === 'v') inner.innerHTML += '<div class="effect-icon">↕️</div>';
           else if (b.effect === 'b') inner.innerHTML += '<div class="effect-icon">💣</div>';
           
-          // 💡 일반 블록에 부착된 시계 스티커 아이콘
+          // 💡 시계 스티커 우측 하단 고정
           if (b.hasClock) inner.innerHTML += '<div class="time-icon">⏰</div>';
         }
         
@@ -1688,6 +1684,7 @@
     }, 1000);
   }
 
+  // 💡 [중복 시간 추가 버그 전면 수정] 유효 파괴 대상 중 시계 부착 블록만 정확히 중복 없이 단 1회 카운트
   function processDestruction(initialToRemove, newSpecials) {
     resetHintTimer();
     let queue = []; let finalToRemove = Array(height).fill().map(() => Array(width).fill(false));
@@ -1749,7 +1746,7 @@
           let b = board[r][c];
           points++;
 
-          // 💡 부착된 시계 스티커 아이콘 감지 처리
+          // 💡 시계 부착 블록 파괴 시 중복 없이 정확히 +3초만 1회 산정
           if (b.hasClock) {
             addedTimeFromBlock += 3;
           }
