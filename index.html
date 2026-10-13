@@ -116,7 +116,6 @@
     font-size: calc(16px + 0.8vw); font-weight: bold; color: #ffcc00;
   }
 
-  /* 💡 미션 패널과 게임 보드 사이로 이동한 슬림 타이머 게이지 (14px) */
   #timer-gauge-container {
     position: relative;
     width: 100%; max-width: 500px;
@@ -145,7 +144,6 @@
     pointer-events: none;
   }
 
-  /* 💡 점멸 주기 완화: 0.6s -> 1.2s */
   @keyframes gaugeDangerPulse {
     0%, 100% { border-color: #ff0000; box-shadow: 0 0 8px #ff0000; }
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
@@ -163,7 +161,6 @@
   }
   .mission-card.completed { border-color: #ffcc00; background: #4a4011; }
   .mission-reward { font-size: 13px; color: #ffcc00; margin-top: 2px; font-weight: bold; }
-  .mission-reward.time-reward { color: #00ffcc; }
 
   #board-container {
     position: relative;
@@ -188,7 +185,6 @@
     transition: border-color 0.3s ease;
   }
 
-  /* 💡 보드 점멸 주기 완화: 0.6s -> 1.2s */
   @keyframes dangerPulse {
     0%, 100% { border-color: #ff0000; box-shadow: 0 0 12px #ff0000; }
     50% { border-color: #550000; box-shadow: 0 0 0px transparent; }
@@ -238,7 +234,6 @@
   .cell:hover { background-color: #555; }
   .cell.selected { background-color: #666; border: 3px solid white; box-sizing: border-box; z-index: 10; }
   
-  /* 💡 특수 블록 아이콘 축소 (12px) 및 위치 우측 하단 고정 */
   .effect-icon { position: absolute; font-size: 12px; bottom: 2px; right: 2px; text-shadow: 1px 1px 2px black; }
   .time-icon { position: absolute; font-size: 12px; bottom: 2px; right: 2px; text-shadow: 1px 1px 2px black; }
 
@@ -398,7 +393,7 @@
         <tr><td colspan="3" style="color:white;">랭킹 정보 확인 중...</td></tr>
       </tbody>
     </table>
-    <div class="version-display">현재 버전: v261013.11</div>
+    <div class="version-display">현재 버전: v261013.12</div>
   </div>
 
   <button id="btn-start">게임 시작</button>
@@ -459,7 +454,7 @@
       <thead><tr><th>순위</th><th>이름</th><th>점수</th></tr></thead>
       <tbody id="ranking-list"></tbody>
     </table>
-    <div class="version-display">현재 버전: v261013.11</div>
+    <div class="version-display">현재 버전: v261013.12</div>
     <button class="btn-restart" id="btn-modal-restart">다시 하기</button>
   </div>
 </div>
@@ -476,8 +471,8 @@
 </div>
 
 <script>
-  // 💡 최신 버전: 261013.11
-  const CLIENT_VERSION = '261013.11';
+  // 💡 최신 버전: 261013.12
+  const CLIENT_VERSION = '261013.12';
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2Bb2v8KnT3zzRdNwGv6yx1ZzI8UBm80EAEwNZsvaVnjswoiYTWDm8HRc6FZTFl7SSwg/exec'; 
 
   const width = 8;
@@ -923,28 +918,18 @@
     });
   }
 
+  // 💡 미션 보상은 100% 점수 보상만 제공
   function generateMission() {
     let shuffled = [...blockTypes].sort(() => 0.5 - Math.random());
     let type1 = shuffled[0], type2 = shuffled[1];
     let count1 = Math.floor(Math.random() * 8) + 5;
     let count2 = Math.floor(Math.random() * 8) + 5;
-    
-    let isTimeReward = Math.random() < 0.5;
-    let scoreReward = 0;
-    let timeReward = 0;
-
-    if (isTimeReward) {
-      timeReward = Math.floor(Math.random() * 8) + 3;
-    } else {
-      scoreReward = (count1 + count2) * 2;
-    }
+    let scoreReward = (count1 + count2) * 2;
 
     return { 
       req: { [type1]: count1, [type2]: count2 }, 
       cur: { [type1]: 0, [type2]: 0 }, 
-      rewardType: isTimeReward ? 'time' : 'score',
       reward: scoreReward, 
-      timeReward: timeReward, 
       completed: false 
     };
   }
@@ -968,22 +953,13 @@
                     </div>`;
       }
       
-      let rewardText = m.rewardType === 'time' 
-        ? `<div class="mission-reward time-reward">+${m.timeReward}초</div>` 
-        : `<div class="mission-reward">+${m.reward}점</div>`;
-
-      cardElem.innerHTML = `${reqHtml}${rewardText}`;
+      cardElem.innerHTML = `${reqHtml}<div class="mission-reward">+${m.reward}점</div>`;
       missionsPanel.appendChild(cardElem);
     });
   }
 
   function showMissionToast(m) {
-    if (m.rewardType === 'time') {
-      missionToast.innerText = `🎉 미션 클리어! (Time +${m.timeReward}초)`;
-    } else {
-      missionToast.innerText = `🎉 미션 클리어! (+${m.reward}점)`;
-    }
-    
+    missionToast.innerText = `🎉 미션 클리어! (+${m.reward}점)`;
     missionToast.style.display = 'block';
     missionToast.style.animation = 'none';
     missionToast.offsetHeight;
@@ -1004,11 +980,7 @@
       for (let type in m.req) { if (m.cur[type] < m.req[type]) isDone = false; }
       if (isDone) {
         m.completed = true; 
-        if (m.rewardType === 'time') {
-          addTime(m.timeReward);
-        } else {
-          updateScore(m.reward); 
-        }
+        updateScore(m.reward); 
         changed = true;
         showMissionToast(m);
         setTimeout(() => { if(!isGameOver){ missions[index] = generateMission(); renderMissions(); } }, 1200);
@@ -1017,13 +989,14 @@
     if (changed) renderMissions();
   }
 
+  // 💡 정확히 깔끔하게 +seconds초만 즉시 가산되도록 보정된 함수
   function addTime(seconds) {
     if (isGameOver) return;
     timeLeft += seconds;
     if (timeLeft > maxTime) maxTime = timeLeft;
     
+    // 타임스탬프 기준점 정확히 보정 (이중 가산 제거)
     timerStartTime += (seconds * 1000);
-    timerTotalDurationMs += (seconds * 1000);
     
     updateGaugeUI();
   }
@@ -1070,7 +1043,6 @@
     }
   }
 
-  // 💡 출현 확률 3%로 하향 및 일반 캐릭터 블록 부착 속성 생성
   function getRandomBlock() {
     let randType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
     let hasClock = (Math.random() < 0.03); // 3% 확률로 시계 아이콘 부착
@@ -1395,7 +1367,6 @@
           else if (b.effect === 'v') inner.innerHTML += '<div class="effect-icon">↕️</div>';
           else if (b.effect === 'b') inner.innerHTML += '<div class="effect-icon">💣</div>';
           
-          // 💡 시계 스티커 우측 하단 고정
           if (b.hasClock) inner.innerHTML += '<div class="time-icon">⏰</div>';
         }
         
@@ -1684,7 +1655,6 @@
     }, 1000);
   }
 
-  // 💡 [중복 시간 추가 버그 전면 수정] 유효 파괴 대상 중 시계 부착 블록만 정확히 중복 없이 단 1회 카운트
   function processDestruction(initialToRemove, newSpecials) {
     resetHintTimer();
     let queue = []; let finalToRemove = Array(height).fill().map(() => Array(width).fill(false));
@@ -1746,7 +1716,6 @@
           let b = board[r][c];
           points++;
 
-          // 💡 시계 부착 블록 파괴 시 중복 없이 정확히 +3초만 1회 산정
           if (b.hasClock) {
             addedTimeFromBlock += 3;
           }
