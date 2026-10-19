@@ -393,7 +393,7 @@
         <tr><td colspan="3" style="color:white;">랭킹 정보 확인 중...</td></tr>
       </tbody>
     </table>
-    <div class="version-display">현재 버전: v261013.12</div>
+    <div class="version-display">현재 버전: v261019.1</div>
   </div>
 
   <button id="btn-start">게임 시작</button>
@@ -541,6 +541,28 @@
   const btnIngameRestart = document.getElementById('btn-ingame-restart');
   const btnModalRestart = document.getElementById('btn-modal-restart');
 
+  // 💡 동일 이름 중복 제거 및 최고 점수만 유지하여 정렬하는 함수
+  function getUniqueTopRankings(list, limit = 10) {
+    if (!Array.isArray(list)) return [];
+    const bestScores = new Map();
+    list.forEach(item => {
+      const name = String(item.name || '').trim();
+      const numScore = Number(item.score) || 0;
+      if (!name) return;
+      if (!bestScores.has(name) || numScore > bestScores.get(name)) {
+        bestScores.set(name, numScore);
+      }
+    });
+
+    const uniqueList = [];
+    bestScores.forEach((s, n) => {
+      uniqueList.push({ name: n, score: s });
+    });
+
+    uniqueList.sort((a, b) => b.score - a.score);
+    return uniqueList.slice(0, limit);
+  }
+
   document.getElementById('btn-close-version-modal').addEventListener('click', () => {
     versionModal.style.display = 'none';
   });
@@ -685,7 +707,7 @@
     const cachedRankings = localStorage.getItem('match3_rankings_cache');
     if (cachedRankings) {
       try {
-        globalRankings = JSON.parse(cachedRankings);
+        globalRankings = getUniqueTopRankings(JSON.parse(cachedRankings));
         renderStartRankings();
       } catch(e){}
     }
@@ -818,12 +840,13 @@
     let name = playerNameInput.value.trim() || '익명';
     registerSection.style.display = 'none';
     
+    // 동일 이름일 경우 최고 점수로 갱신하여 상위 10위 표출
     globalRankings.push({ name: name, score: score });
-    globalRankings.sort((a, b) => b.score - a.score);
-    globalRankings = globalRankings.slice(0, 10);
+    globalRankings = getUniqueTopRankings(globalRankings, 10);
     renderRankings(rankingList);
     localStorage.setItem('match3_rankings_cache', JSON.stringify(globalRankings));
 
+    // 구글 스프레드시트에는 기존처럼 매 기록마다 그대로 추가 전송
     await saveScore(name, score);
     await loadServerData();
     renderRankings(rankingList);
@@ -835,7 +858,8 @@
       let data = await res.json();
       
       if (Array.isArray(data.rankings)) {
-        globalRankings = data.rankings;
+        // 서버의 전체 누적 기록 중 동일 이름은 최고 점수만 갱신하여 저장
+        globalRankings = getUniqueTopRankings(data.rankings, 10);
         localStorage.setItem('match3_rankings_cache', JSON.stringify(globalRankings));
       }
 
@@ -989,15 +1013,11 @@
     if (changed) renderMissions();
   }
 
-  // 💡 정확히 깔끔하게 +seconds초만 즉시 가산되도록 보정된 함수
   function addTime(seconds) {
     if (isGameOver) return;
     timeLeft += seconds;
     if (timeLeft > maxTime) maxTime = timeLeft;
-    
-    // 타임스탬프 기준점 정확히 보정 (이중 가산 제거)
     timerStartTime += (seconds * 1000);
-    
     updateGaugeUI();
   }
 
@@ -1045,7 +1065,7 @@
 
   function getRandomBlock() {
     let randType = blockTypes[Math.floor(Math.random() * blockTypes.length)];
-    let hasClock = (Math.random() < 0.03); // 3% 확률로 시계 아이콘 부착
+    let hasClock = (Math.random() < 0.03);
     return { type: randType, effect: 'normal', hasClock: hasClock };
   }
 
@@ -1286,8 +1306,11 @@
     
     let isTop10 = false;
     if (score > 0) {
-      if (globalRankings.length < 10) { isTop10 = true; } 
-      else if (score > globalRankings[globalRankings.length - 1].score) { isTop10 = true; }
+      if (globalRankings.length < 10) { 
+        isTop10 = true; 
+      } else if (score > globalRankings[globalRankings.length - 1].score) { 
+        isTop10 = true; 
+      }
     }
 
     if (isTop10) {
